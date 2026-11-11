@@ -63,7 +63,7 @@ Criteria are from the 2024 Judging & Awards Guide. The 2026 guide comes out 13 N
 | Influence | Big problem or small? | Fire safety for the ISS, Artemis landers and rovers. Shows where Earth screening and NASA's data both fall short. |
 | Creativity | New, or incremental? | Earth vs Orbit twin driven by NASA's equation. An AI that operates NASA's models instead of just chatting. A raw-data audit nobody else will do. |
 | Validity | Can it work in the real world? | Every claim quote-checked with page numbers. Models labeled with their limits. The simulator checked against NASA's own results. Anomalies quarantined, not hidden. |
-| Relevance | Answers the challenge, complete, usable | SUMMARIZE, RANK and INTERPRET tabs map to the prompt's three verbs. AI-powered through Lab Partner and the pipeline. Lunar atmosphere covered (honestly: there's no data). |
+| Relevance | Answers the challenge, complete, usable | SUMMARIZE, RANK and INTERPRET views map to the prompt's three verbs. AI-powered through Lab Partner and the pipeline. Lunar atmosphere covered (honestly: there's no data). |
 | Presentation | Did they explain it? Judges weight this equally. | A 30-second video with one wow per beat. |
 
 **Awards to aim at:**
@@ -98,19 +98,39 @@ Screen recording at 1440×900, captions burned in, no voice.
 
 ## 4. App shell and feature overview
 
+The app is four full-screen views, one at a time, chosen by the URL hash. The header, the audit strip, the Lab Partner dock and the citation drawer stay mounted on every view; only the main area changes.
+
 ```
-+-- ZERO-DRAFT ----------------------------------------------------- [Lab Partner] --+
-| F0 AUDIT  129 tests  ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮  [counts from CSV, clickable] |
-+------------------------------------------------------------------------------------+
-| F1 BURN TWIN   [ Earth · 1g ]   [ Orbit · ISS duct ]   [ Eq 6.1 inset ]   controls |
-+------------------------------------------------------------------------------------+
-| [ SUMMARIZE ]  [ RANK ]  [ INTERPRET ]                          | F5 Lab Partner    |
-|                                                                  | dock (collapsible)|
-|   tab content (F2 / F3 / F4)                                     | transcript, tools |
-|                                                                  | citation chips    |
-+------------------------------------------------------------------------------------+
-F6 citation drawer slides over from the right on any screen.
++-- Zero-draft   Earth fire tests miss how materials burn in orbit.   Overview  Summarize  Rank  Interpret --+
+| F0 audit strip, 40px: counts from the CSV, clickable, segment bar              |                           |
++--------------------------------------------------------------------------------+ F5 Lab Partner dock,      |
+|                                                                                | full height. A 48px rail  |
+| main area: one view fills it, and scrolls inside itself if it is taller        | by default, 384px wide    |
+|                                                                                | when open. Transcript,    |
+|                                                                                | tool lines, citation chips|
++--------------------------------------------------------------------------------+---------------------------+
+F6 citation drawer slides over from the right on any view.
 ```
+
+| Route | View | What fills the main area |
+|---|---|---|
+| `#/` | Overview | F1 Burn Twin. The Earth and Orbit chambers sit side by side. The Eq. 6.1 inset is under them on the right and the controls are under them on the left. |
+| `#/summarize` | Summarize | F2 telemetry explorer |
+| `#/rank` | Rank | F3 Orbital Risk Index, flammability map, ignition race |
+| `#/interpret` | Interpret | F4 cabin fire, toxicity and suppression simulator |
+
+**Routing rules:**
+- An unknown hash shows the Overview and rewrites the address to `#/`.
+- Back and forward work, because each view change is a history entry.
+- Query parameters are parsed for deep links and passed to the view as `params`: `#/interpret?preset=m5`, `#/summarize?test=P22b`. Each view reads its own parameters in the milestone that builds it. The Lab Partner's `navigate` tool uses the same links.
+- A view fits a 1440×900 window without page scrolling where possible. If it is taller, the main area scrolls inside itself.
+- A view change is a 150 ms crossfade, and instant under reduced motion.
+
+**Shell:**
+- Header: the product name in bold, the thesis line in muted text, and the navigation. The active view has a 2px cyan underline and nothing else.
+- Audit strip: 40px, no box and no title. Its text and segment bar are F0.
+- Lab Partner dock: collapsed by default. Open it from the rail button.
+- Design rules (no uppercase labels, frames only on chambers and charts, an 8px grid with 24px gutters) are in `CLAUDE.md`.
 
 **P0, all must ship:**
 
@@ -203,9 +223,9 @@ The old spec's headline counts (129, 122, 5, 2 and 4) are confirmed. Everything 
 **Purpose:** show the whole thesis in ten seconds without reading.
 
 **Layout:**
-- Two chambers side by side, each about 560×340, on near-black backgrounds with a thin duct outline.
-- To the right, an Eq. 6.1 inset chart (O2 vs flow, log x-axis) with a moving dot.
-- Controls below: O2 slider (12.0–23.0%), flow U (0.2–40 cm/s, log), rod size (6.35, 9.525 or 12.7 mm), and the buttons "Ignite", "Drain oxygen" and "Reset".
+- Two chambers side by side, each a black duct with a 1px frame, sized by the main area (§4). The flames scale to fit.
+- Under the chambers, on the right, an Eq. 6.1 inset chart (O2 vs flow, log x-axis) with a moving dot. No box around it.
+- Under the chambers, on the left, the controls. No box around them either: O2 slider (12.0–23.0%), flow U (0.2–40 cm/s, log), rod size (6.35, 9.525 or 12.7 mm), and the buttons "Ignite", "Drain oxygen" and "Reset".
 
 **Left chamber, "Earth · 1g · upward burning":**
 - A teardrop flame, yellow-orange, with a gentle flicker.
@@ -299,7 +319,7 @@ The old spec's headline counts (129, 122, 5, 2 and 4) are confirmed. Everything 
 - Tiles then show the outcome, labeled "AI-read from NASA's notes, quote checked".
 - This is a second, separate use of AI on real NASA records, and it fixes the SIBAL blind spot.
 
-**AI dataset briefing** (collapsible, top of the tab):
+**AI dataset briefing** (collapsible, top of the view):
 - 4–6 sentences written by the pipeline (§7.2) from the computed stats JSON only.
 - A script fails the build if any number in the text isn't in the stats JSON.
 - Label: "AI-written, numbers checked".
@@ -472,7 +492,7 @@ Relevance of each indexed investigation to the ISS and lunar atmospheres, from F
 **Name:** the report thanks "our lab partner Astronauts" (`bass2.lab-partner`).
 
 **Dock:**
-- A collapsible right panel on every tab.
+- A collapsible panel, full height on the right of every view. It is a 48px rail by default and 384px wide when open (§4).
 - The transcript is mission-control style, with mono timestamps ("T+00:12").
 - Answers stream in.
 - After each sentence come citation chips, and clicking a chip opens F6.
@@ -486,10 +506,12 @@ Relevance of each indexed investigation to the ISS and lunar atmospheres, from F
 - `set_burn_twin({ o2Pct?, flowCmS?, rodMm?, action?: 'ignite' | 'drain' | 'reset' })`
 - `run_cabin_preset({ preset: 'm5' | 'us-lab' | 'small-cabin' | 'n2-dilution' | 'lunar' })`
 - `set_cabin({ volumeM3?, powerW?, geometry?, rodMm?, flowCmS?, n2FlowCcMin?, n2StartMin?, durationMin? })`
-- `open_tab({ tab: 'summarize' | 'rank' | 'interpret' })`
+- `navigate({ view: 'overview' | 'summarize' | 'rank' | 'interpret', params? })`: goes to the view's route with the same query parameters as the deep links in §4, e.g. `{ view: 'interpret', params: { preset: 'm5' } }`
 - `filter_tests({ pi?, geometry?, quarantine?: boolean })`
 - `highlight_risk_entity({ id })`
 - `open_citation({ claimId })`
+
+Each module belongs to one view: `set_burn_twin` to Overview, `filter_tests` to Summarize, `highlight_risk_entity` to Rank, `run_cabin_preset` and `set_cabin` to Interpret. When the module's view isn't showing, the server runs `navigate` to that view first, and the transcript line says so.
 
 **Signature motion:** when Lab Partner calls a tool, a line appears in the transcript ("Lab Partner → Interpret: ran Replay Test M5") with an Undo. The changed controls pulse cyan once, and the view scrolls to them.
 
@@ -506,7 +528,7 @@ Relevance of each indexed investigation to the ISS and lunar atmospheres, from F
 3. "Would a Test M5 fire be dangerous in a small cabin?" Runs the small-cabin preset.
 4. "How long should suppression continue after a fire goes out?" Cites p. 52.
 5. "Does NASA have fire data for a 34% oxygen lunar habitat?" Runs the lunar preset; cites BASS-II's 1 atm and FLEX's 0.5–1.5 atm droplet tests.
-6. "Why did some oxygen readings say 39%?" Opens SUMMARIZE's quarantine bay on P22b and shows the math.
+6. "Why did some oxygen readings say 39%?" Navigates to `#/summarize?test=P22b`, opens the quarantine bay on P22b and shows the math.
 
 **Limits:**
 - 400 output tokens.
@@ -899,7 +921,7 @@ That's about 35–38 hours: 6–7 hours a day, every day. There is no slack.
 
 ### M3. Data: CSV, audit bar, SUMMARIZE (Wed)
 
-> Read CLAUDE.md and docs/SPEC.md F0, F2, F3a and §6, and the files in docs/fixtures/. Write scripts/compile-bass2.ts to replace the old compile_bass2.py. Read pipeline/sources/PSI-25/PSI-25_Experimental table_BASS-II.csv as UTF-8, strip the byte-order mark, handle CRLF and quoted cells (e.g. "1/4"" clear rod"), trim header names, and keep every raw cell exactly. Implement src/lib/audit.ts with every rule in docs/fixtures/audit-expected.json (match whole cells, never substrings), parse each material into the SampleType from §6, take flowConfig from docs/fixtures/flow-by-test.json, and compute burnConfirmed and coPerCo2. Write audit.test.ts that reproduces every count and test-id list in audit-expected.json, every row of per-test-expected.json, and every row of o2-forensics.json. Output public/data/bass2.json and audit.json. Then build the F0 audit bar and the F2 SUMMARIZE tab: test wall, quarantine animation with "Show the math", filters, record drawer, distribution strip and the "Checked against NASA" panel. Leave the AI briefing box and the outcome glyphs showing "Not generated yet".
+> Read CLAUDE.md and docs/SPEC.md F0, F2, F3a and §6, and the files in docs/fixtures/. Write scripts/compile-bass2.ts to replace the old compile_bass2.py. Read pipeline/sources/PSI-25/PSI-25_Experimental table_BASS-II.csv as UTF-8, strip the byte-order mark, handle CRLF and quoted cells (e.g. "1/4"" clear rod"), trim header names, and keep every raw cell exactly. Implement src/lib/audit.ts with every rule in docs/fixtures/audit-expected.json (match whole cells, never substrings), parse each material into the SampleType from §6, take flowConfig from docs/fixtures/flow-by-test.json, and compute burnConfirmed and coPerCo2. Write audit.test.ts that reproduces every count and test-id list in audit-expected.json, every row of per-test-expected.json, and every row of o2-forensics.json. Output public/data/bass2.json and audit.json. Then build the F0 audit bar and the F2 SUMMARIZE view: test wall, quarantine animation with "Show the math", filters, record drawer, distribution strip and the "Checked against NASA" panel. Leave the AI briefing box and the outcome glyphs showing "Not generated yet".
 
 **Known bugs in the old compile_bass2.py** (don't port them):
 1. It gives five tests negative heat (T5, T10, T12, T13, T23).

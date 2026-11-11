@@ -1,6 +1,8 @@
 import { useId, type ReactNode } from 'react'
 
-// A small "+" mark centred on a panel corner (CLAUDE.md design rules).
+// A small "+" centred on a frame corner. The frame's border is 1px, and an absolutely
+// positioned child is placed from the padding edge, so -5px puts the 9px mark's centre
+// on the middle of that 1px border.
 function CornerTick({ className }: { className: string }) {
   return (
     <svg
@@ -14,45 +16,30 @@ function CornerTick({ className }: { className: string }) {
 }
 
 type PanelProps = {
-  /** Short label shown in the panel's top-left, in small capitals. */
+  /** Plain-words title, shown above the frame. */
   title: string
-  /** Optional small label at the top-right, such as a status chip. */
-  tag?: ReactNode
   className?: string
   children?: ReactNode
 }
 
-/** The instrument-panel frame: 1px border, square corners, "+" corner ticks. */
-export function Panel({ title, tag, className = '', children }: PanelProps) {
+/**
+ * An instrument panel: a titled 1px frame on the page background, with "+" ticks at its
+ * four outer corners. Use it for chambers and charts only, never for text sections.
+ */
+export function Panel({ title, className = '', children }: PanelProps) {
   const headingId = useId()
   return (
-    <section
-      aria-labelledby={headingId}
-      className={`relative flex flex-col border border-line bg-panel ${className}`}
-    >
-      <CornerTick className="-top-[4.5px] -left-[4.5px]" />
-      <CornerTick className="-top-[4.5px] -right-[4.5px]" />
-      <CornerTick className="-bottom-[4.5px] -left-[4.5px]" />
-      <CornerTick className="-right-[4.5px] -bottom-[4.5px]" />
-      <header className="flex items-center justify-between gap-3 border-b border-line px-3 py-1.5">
-        <h2 id={headingId} className="text-xs font-semibold tracking-widest text-muted uppercase">
-          {title}
-        </h2>
-        {tag}
-      </header>
-      <div className="flex-1">{children}</div>
+    <section aria-labelledby={headingId} className={`flex min-h-0 flex-col gap-2 ${className}`}>
+      <h2 id={headingId} className="text-sm leading-6 font-semibold">
+        {title}
+      </h2>
+      <div className="relative min-h-0 flex-1 border border-line">
+        <CornerTick className="-top-[5px] -left-[5px]" />
+        <CornerTick className="-top-[5px] -right-[5px]" />
+        <CornerTick className="-bottom-[5px] -left-[5px]" />
+        <CornerTick className="-right-[5px] -bottom-[5px]" />
+        {children}
+      </div>
     </section>
   )
-}
-
-/** A small bordered text label, used for statuses like "Not built yet". */
-export function Tag({ children }: { children: ReactNode }) {
-  return (
-    <span className="num border border-line px-1.5 py-0.5 text-xs text-muted">{children}</span>
-  )
-}
-
-/** Muted text for areas a later milestone will fill in. */
-export function EmptyNote({ children }: { children: ReactNode }) {
-  return <p className="p-3 text-sm text-muted">{children}</p>
 }

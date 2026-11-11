@@ -1,10 +1,14 @@
-import { EmptyNote, Panel, Tag } from '../components/Panel'
+import { Note } from '../components/Note'
 
-/** F2 SUMMARIZE telemetry explorer. Empty shell: built in M3. */
+/**
+ * #/summarize : F2 telemetry explorer. Empty shell: built in M3.
+ * Receives `params` (ViewProps) but reads none yet; M3 will read e.g. ?test=P22b.
+ */
 export function Summarize() {
   return (
-    <Panel title="Summarize" tag={<Tag>Not built yet</Tag>} className="min-h-64">
-      <EmptyNote>The telemetry explorer arrives in milestone M3.</EmptyNote>
-    </Panel>
+    <div className="p-6">
+      <h1 className="sr-only">Summarize</h1>
+      <Note>The telemetry explorer arrives in M3</Note>
+    </div>
   )
 }

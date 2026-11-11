@@ -1,10 +1,14 @@
-import { EmptyNote, Panel, Tag } from '../components/Panel'
+import { Note } from '../components/Note'
 
-/** F4 INTERPRET: cabin fire, toxicity and suppression simulator. Empty shell: built in M5. */
+/**
+ * #/interpret : F4 cabin fire, toxicity and suppression simulator. Empty shell: built in M5.
+ * Receives `params` (ViewProps) but reads none yet; M5 will read e.g. ?preset=m5.
+ */
 export function Interpret() {
   return (
-    <Panel title="Interpret" tag={<Tag>Not built yet</Tag>} className="min-h-64">
-      <EmptyNote>The cabin fire simulator arrives in milestone M5.</EmptyNote>
-    </Panel>
+    <div className="p-6">
+      <h1 className="sr-only">Interpret</h1>
+      <Note>The cabin fire simulator arrives in M5</Note>
+    </div>
   )
 }

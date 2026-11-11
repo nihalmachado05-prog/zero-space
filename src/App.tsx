@@ -1,51 +1,43 @@
 import { useState, type ComponentType } from 'react'
 import { Header } from './components/Header'
-import { Tabs, type TabItem } from './components/Tabs'
+import { ViewFrame } from './components/ViewFrame'
+import type { ViewId, ViewProps } from './lib/route'
+import { useRoute } from './lib/useRoute'
 import { AuditBar } from './views/AuditBar'
-import { BurnTwin } from './views/BurnTwin'
 import { Interpret } from './views/Interpret'
 import { LabPartnerDock } from './views/LabPartnerDock'
+import { Overview } from './views/Overview'
 import { Rank } from './views/Rank'
 import { Summarize } from './views/Summarize'
 
-type ModuleId = 'summarize' | 'rank' | 'interpret'
-
-const MODULES: readonly TabItem<ModuleId>[] = [
-  { id: 'summarize', label: 'Summarize' },
-  { id: 'rank', label: 'Rank' },
-  { id: 'interpret', label: 'Interpret' },
-]
-
-const MODULE_VIEWS: Record<ModuleId, ComponentType> = {
+const VIEW_COMPONENTS: Record<ViewId, ComponentType<ViewProps>> = {
+  overview: Overview,
   summarize: Summarize,
   rank: Rank,
   interpret: Interpret,
 }
 
+/**
+ * The shell. The header, audit bar and Lab Partner dock stay mounted on every view; only the
+ * main area changes. (The citation drawer, F6, mounts here too once it exists in M1.)
+ */
 export default function App() {
-  const [active, setActive] = useState<ModuleId>('summarize')
-  const [dockOpen, setDockOpen] = useState(true)
-  const ActiveView = MODULE_VIEWS[active]
+  const route = useRoute()
+  const [dockOpen, setDockOpen] = useState(false)
+  const View = VIEW_COMPONENTS[route.view]
 
   return (
-    <div className="flex min-h-full flex-col">
-      <Header dockOpen={dockOpen} onToggleDock={() => setDockOpen((open) => !open)} />
-      <main className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-4 p-4">
-        <AuditBar />
-        <BurnTwin />
-        <div
-          className={`grid items-start gap-4 ${
-            dockOpen ? 'lg:grid-cols-[minmax(0,1fr)_22rem]' : ''
-          }`}
-        >
-          <section aria-label="Investigation modules">
-            <Tabs tabs={MODULES} active={active} onChange={setActive} label="Modules">
-              <ActiveView />
-            </Tabs>
-          </section>
-          <LabPartnerDock open={dockOpen} />
+    <div className="flex h-dvh flex-col overflow-hidden">
+      <Header active={route.view} />
+      <div className="flex min-h-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <AuditBar />
+          <ViewFrame viewKey={route.view}>
+            <View params={route.params} />
+          </ViewFrame>
         </div>
-      </main>
+        <LabPartnerDock open={dockOpen} onToggle={() => setDockOpen((open) => !open)} />
+      </div>
     </div>
   )
 }

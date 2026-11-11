@@ -1,28 +1,41 @@
-import { PanelRightClose, PanelRightOpen } from 'lucide-react'
+import { formatHash, type ViewId } from '../lib/route'
+
+const NAV: readonly { view: ViewId; label: string }[] = [
+  { view: 'overview', label: 'Overview' },
+  { view: 'summarize', label: 'Summarize' },
+  { view: 'rank', label: 'Rank' },
+  { view: 'interpret', label: 'Interpret' },
+]
 
 type HeaderProps = {
-  dockOpen: boolean
-  onToggleDock: () => void
+  active: ViewId
 }
 
-export function Header({ dockOpen, onToggleDock }: HeaderProps) {
-  const Icon = dockOpen ? PanelRightClose : PanelRightOpen
+export function Header({ active }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-line bg-void px-4 py-2.5">
-      <div className="flex items-baseline gap-3">
-        <h1 className="text-lg font-bold tracking-[0.2em]">ZERO-DRAFT</h1>
-        <p className="hidden text-sm text-muted sm:block">BASS-II microgravity fire experiments</p>
+    <header className="flex h-14 shrink-0 items-stretch justify-between gap-6 border-b border-line px-6">
+      <div className="flex items-center gap-4">
+        <a href={formatHash('overview')} className="text-lg font-bold">
+          Zero-draft
+        </a>
+        <p className="hidden text-sm text-muted lg:block">
+          Earth fire tests miss how materials burn in orbit.
+        </p>
       </div>
-      <button
-        type="button"
-        onClick={onToggleDock}
-        aria-expanded={dockOpen}
-        aria-controls="lab-partner-dock"
-        className="flex items-center gap-2 border border-line bg-panel px-3 py-1.5 text-sm hover:border-cyan hover:text-cyan"
-      >
-        <Icon aria-hidden="true" className="size-4" />
-        {dockOpen ? 'Close Lab Partner' : 'Open Lab Partner'}
-      </button>
+      <nav aria-label="Views" className="flex items-stretch gap-6">
+        {NAV.map(({ view, label }) => (
+          <a
+            key={view}
+            href={formatHash(view)}
+            aria-current={view === active ? 'page' : undefined}
+            className={`-mb-px flex items-center border-b-2 text-sm ${
+              view === active ? 'border-cyan' : 'border-transparent hover:border-line'
+            }`}
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
     </header>
   )
 }

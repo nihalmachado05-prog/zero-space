@@ -50,6 +50,7 @@ docs/fixtures/               expected values from the verified audit. Tests must
 public/data/                 JSON the site loads. Generated, never hand-edited.
 public/img/                  NASA figures we extracted, credited in sources.json
 src/
+  lib/route.ts               hash routes (#/, #/summarize, #/rank, #/interpret) and query params. Pure, tested. lib/useRoute.ts is the React hook.
   lib/normalize.ts           the single text-normalizing function used everywhere
   lib/physics.ts             Eq. 6.1, stretch rate, t_s. Pure, fully tested.
   lib/cabin.ts               cabin fire, toxicity and N2 dilution model. Pure, fully tested.
@@ -59,7 +60,7 @@ src/
   data/claims.json           every sourced number and sentence shown in the UI
   data/sources.json          bibliography
   components/                one component per file, under 250 lines
-  views/                     AuditBar, BurnTwin, Summarize, Rank, Interpret, LabPartnerDock
+  views/                     AuditBar, Overview (shows BurnTwin), BurnTwin, Summarize, Rank, Interpret, LabPartnerDock
 ```
 
 ## Data integrity rules (non-negotiable; this is how we win "Validity")
@@ -81,7 +82,7 @@ src/
 ## Design rules
 
 - Mission-control look. Tokens go in `@theme` in `src/index.css`:
-  - `void #060911` page background, `panel #0b101b` surfaces, `line #1e293b` borders
+  - `void #060911` page background, `panel #0b101b` for overlays only (citation drawer, menus), never for page panels, `line #1e293b` borders
   - `ink #cbd5e1` text, `muted #64748b` secondary text
   - `cyan #06b6d4`: microgravity, active selection, live model values
   - `amber #f59e0b`: 1g reference, cautions, 10 ppm limit
@@ -95,6 +96,12 @@ src/
 - Never rely on color alone. Pair every status color with a text label or icon.
 - Desktop-first: 1440×900 is the demo size, and nothing may break at 1280 wide. Text in charts is at least 12px so it reads in a video.
 - Sentence case and plain words. Buttons say what they do ("Drain oxygen", "Show source").
+- No uppercase or letter-spaced labels anywhere.
+- No "·" separators in titles. Use a comma or a plain word ("Earth, 1g").
+- Frames and corner ticks only on instrument panels (chambers and charts), never on text sections, and only at a panel's four outer corners.
+- At most one status badge per screen.
+- Panels use the page background, not a lighter box.
+- Spacing is on an 8px grid, with 24px gutters.
 - Visible keyboard focus everywhere.
 
 ## Definition of done (every milestone)

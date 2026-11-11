@@ -1,23 +1,17 @@
-import { EmptyNote, Panel, Tag } from '../components/Panel'
+import { Note } from '../components/Note'
+import { Panel } from '../components/Panel'
 
-/** F1 Earth vs Orbit Burn Twin. Empty shell: chambers, inset and controls arrive in M2. */
+/**
+ * F1 Earth vs Orbit Burn Twin. Empty shell: the flames, readouts, inset chart and controls
+ * arrive in M2. Two columns, so the chambers, the controls and the inset share their edges.
+ */
 export function BurnTwin() {
   return (
-    <section aria-label="Earth vs orbit burn twin" className="flex flex-col gap-4">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,18rem)]">
-        <Panel title="Earth · 1g · upward burning" tag={<Tag>Not built yet</Tag>} className="h-56">
-          <EmptyNote>Earth chamber arrives in milestone M2.</EmptyNote>
-        </Panel>
-        <Panel title="Orbit · forced flow" tag={<Tag>Not built yet</Tag>} className="h-56">
-          <EmptyNote>Orbit chamber arrives in milestone M2.</EmptyNote>
-        </Panel>
-        <Panel title="Eq. 6.1 inset" tag={<Tag>Not built yet</Tag>} className="h-56">
-          <EmptyNote>Oxygen-versus-flow chart arrives in milestone M2.</EmptyNote>
-        </Panel>
-      </div>
-      <Panel title="Burn twin controls" tag={<Tag>Not built yet</Tag>}>
-        <EmptyNote>Oxygen, flow and rod-size controls arrive in milestone M2.</EmptyNote>
-      </Panel>
-    </section>
+    <div className="grid h-full min-h-[34rem] grid-cols-2 grid-rows-[minmax(0,1fr)_12rem] gap-6 p-6">
+      <Panel title="Earth, 1g" />
+      <Panel title="Orbit, ISS glovebox" />
+      <Note>Controls arrive in M2</Note>
+      <Note>Eq. 6.1 inset arrives in M2</Note>
+    </div>
   )
 }
