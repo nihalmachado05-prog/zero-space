@@ -1,4 +1,5 @@
 import { formatHash, type ViewId } from '../lib/route'
+import { Cite } from './Cite'
 
 const NAV: readonly { view: ViewId; label: string }[] = [
   { view: 'overview', label: 'Overview' },
@@ -16,10 +17,11 @@ export function Header({ active }: HeaderProps) {
     <header className="flex h-14 shrink-0 items-stretch justify-between gap-6 border-b border-line px-6">
       <div className="flex items-center gap-4">
         <a href={formatHash('overview')} className="text-lg font-bold">
-          Zero-draft
+          ZERO-DRAFT
         </a>
-        <p className="hidden text-sm text-muted lg:block">
+        <p className="hidden items-baseline gap-2 text-sm text-muted lg:flex">
           Earth fire tests miss how materials burn in orbit.
+          <Cite id="psi26.impacts" />
         </p>
       </div>
       <nav aria-label="Views" className="flex items-stretch gap-6">

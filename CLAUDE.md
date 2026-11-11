@@ -31,6 +31,7 @@ The full plan is `docs/SPEC.md`. Before writing code for a milestone, read that 
 - `npm test`: unit tests (`vitest run`)
 - `npm run build`: must pass before a milestone is done
 - `npm run check:claims`: confirms every quote in `src/data/claims.json` is on its stated PDF page, or its stated line of a PSI file
+- `npm run llm:smoke`: sends "say ok" to Gemini with the key and model in `.env.local`; prints ok
 - `npm run data:bass2`: rebuilds `public/data/bass2.json` and `audit.json` from the raw CSV
 - `npm run pipeline:text`, `pipeline:extract`, `pipeline:verify`, `pipeline:briefing`, `pipeline:chunks`: the AI pipeline (SPEC §7)
 
