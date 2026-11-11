@@ -609,7 +609,8 @@ export type GravityClass = 'micro' | 'partial' | 'normal' | 'mixed'
 
 export interface Source { id: string; title: string; publisher: string; year: number | null; doi: string | null; url: string | null; kind: 'report' | 'dataset' | 'paper' | 'poster' | 'web'; credit?: string }
 
-export interface Locator { pdfPage?: number; reportPage?: number | null; spansNextPage?: boolean; table?: string; row?: string }
+export interface Locator { pdfPage?: number; reportPage?: number | null; spansNextPage?: boolean; table?: string; row?: string; file?: string; line?: number }
+// file and line: PSI metadata quotes. file is inside pipeline/sources/<SOURCE-ID>/ (sourceId "psi-98" is folder "PSI-98"); line is 1-based.
 
 export interface Claim {
   id: string; topic: string; text: string
