@@ -19,7 +19,7 @@ The full plan is `docs/SPEC.md`. Before writing code for a milestone, read that 
 - Vite 8, React 19, TypeScript
 - Tailwind CSS v4 through `@tailwindcss/vite`. There is no `tailwind.config.js`; tokens live in `@theme` in `src/index.css`.
 - Recharts 3 for charts, `motion` (import from `motion/react`) for animation, lucide-react for icons, MiniSearch for text search
-- Fonts: `@fontsource-variable/archivo` for words, `@fontsource-variable/jetbrains-mono` for numbers
+- Fonts: `@fontsource-variable/archivo` for our words, `@fontsource-variable/source-serif-4` for NASA's quoted words, `@fontsource-variable/jetbrains-mono` for numbers
 - Vitest for tests, tsx to run scripts, unpdf to read PDF text
 - Deploy on Vercel: static site plus serverless functions in `api/`
 - Gemini through `@google/genai` (SPEC §7.3). Only `pipeline/scripts/llm.ts` imports it; `api/` uses that module. Keys and the model name come from `GEMINI_API_KEY` and `GEMINI_MODEL`.
@@ -67,7 +67,7 @@ src/
 ## Data integrity rules (non-negotiable; this is how we win "Validity")
 
 1. **No invented numbers.** Every scientific number in the UI comes from `src/data/claims.json` (quoted from a source), from the CSV through `lib/audit.ts`, or from a function in `src/lib/` with cited inputs. Components never hardcode scientific values, including the audit counts.
-2. **Every claim is clickable.** Wrap sourced values and sentences in `<Cite id="..." />`. The drawer shows the verbatim quote, source, report page and PDF page, and for computed values the formula and its inputs. Row-level data shows the raw CSV cells.
+2. **Every claim is clickable.** Wrap sourced values and sentences in `<Cite id="..." />`, which renders a numbered footnote. The drawer shows the verbatim quote, source, report page and PDF page, and for computed values the formula and its inputs. Row-level data shows the raw CSV cells.
 3. **Quotes are machine-checked.** `check:claims` confirms each quote is on its stated page after `normalize()`. Anything unverified is hidden from the main UI.
 4. **Unknown means unknown.** If a source doesn't state a value, store `null` and show "Not stated". Never fill a gap with a typical value.
 5. **Alarms are earned.** Every verdict, alarm and color state (burns, out, above SMAC, sensor ceiling) comes from model state in `src/lib/`. Never trigger or style an alarm the model didn't produce.
@@ -83,13 +83,21 @@ src/
 ## Design rules
 
 - Mission-control look. Tokens go in `@theme` in `src/index.css`:
-  - `void #060911` page background, `panel #0b101b` for overlays only (citation drawer, menus), never for page panels, `line #1e293b` borders
-  - `ink #cbd5e1` text, `muted #64748b` secondary text
+  - `graphite #141518` page background
+  - `window #000000` inside the frames of chambers and charts: they are windows
+  - `panel #1b1c20` for overlays only (citation drawer, footnote previews, menus), never for page sections
+  - `line #2a2b31` borders
+  - `ink #d9d6cf` text (warm off-white), `muted #8b8880` secondary text
   - `cyan #06b6d4`: microgravity, active selection, live model values
   - `amber #f59e0b`: 1g reference, cautions, 10 ppm limit
   - `red #ef4444`: flammable region, 55 ppm limit, quarantined data
   - `emerald #10b981`: verified data and checks
-- Archivo for words. JetBrains Mono with `tabular-nums` for every number, slider value, axis tick, table cell and timestamp.
+- Nothing in the interface chrome is blue-tinted. Cyan and amber are only for data, live values and interactive states (focus, selection, links, footnotes). On the Overview, the flames are the only saturated light.
+- Three type voices, never swapped:
+  - Archivo is our interface words: headings, labels, buttons, our own sentences, and citations.
+  - Source Serif 4 (`font-serif`) is NASA's own words: every quote taken from a source, verbatim, and nothing else.
+  - JetBrains Mono with `tabular-nums` (the `num` utility) is numbers only: data values, slider values, axis ticks, table cells and timestamps. Mono is never used for labels or citations.
+- Citations are scientific footnotes. `<Cite>` is a small cyan superscript number, ¹ ² ³ in order of appearance on the current view (a claim cited twice keeps its number), with no brackets and no mono. Hover or keyboard focus shows a one-line preview (source short name plus page or line); a click opens the drawer.
 - Square or near-square corners (`rounded-none` or `rounded-sm`), 1px borders, small `+` corner ticks on instrument panels. No gradients or emoji in the interface chrome. Only the flame illustrations may use blur and glow.
 - **Every view has one signature motion** (listed in SPEC §5). Make it excellent and keep everything else still.
   - Animate with `motion` or `requestAnimationFrame` plus refs; never re-render the whole page every frame.
@@ -101,9 +109,29 @@ src/
 - No "·" separators in titles. Use a comma or a plain word ("Earth, 1g").
 - Frames and corner ticks only on instrument panels (chambers and charts), never on text sections, and only at a panel's four outer corners.
 - At most one status badge per screen.
-- Panels use the page background, not a lighter box.
+- Text sections sit on the page background, not in a lighter box. Chambers and charts are windows: black inside their frames.
 - Spacing is on an 8px grid, with 24px gutters.
 - Visible keyboard focus everywhere.
+
+## Interaction details
+
+Adapted for this app from Rauno Freiberg's Web Interface Guidelines, https://interfaces.rauno.me (source: github.com/raunofreiberg/interfaces). Credit to Rauno for the ideas; the rules below are ours, in our words.
+
+1. Interaction animations take 200 ms or less. Only a view's signature motion may run longer.
+2. Motion is in proportion to the element: a drawer slides from just off screen, a popover fades or scales from about 95%, a pressed button shrinks a few percent. Nothing grows from zero.
+3. Things people trigger again and again (footnote previews, menus, row hover) appear without animation.
+4. Looping motion (a pulsing flame, a playing replay) pauses when it is off screen or the tab is hidden.
+5. Values that change every frame (slider readouts, strip charts, flame shapes) go to the DOM through refs, an SVG attribute or a canvas, never through React state on each frame.
+6. Numbers that update in place use `tabular-nums`, so their width never jumps.
+7. Hover and selected states never change font weight; they change color or a border, so nothing shifts.
+8. Anything the pointer can do, the keyboard can do, with a visible focus ring. Lists you step through (leaderboard rows, test tiles) also move with arrow keys.
+9. Icon-only buttons carry an `aria-label`. A drawing built from HTML or SVG (a chamber, a flame) carries one label for the whole picture, so a screen reader doesn't read its parts.
+10. Hover previews and tooltips hold no buttons or links, also open on keyboard focus, close on Esc, and stay open while the pointer moves onto them. A disabled control gets no tooltip.
+11. Small targets (footnote numbers, chart points, slider thumbs) get a hit area larger than what they draw, without covering their neighbors.
+12. Clicking a label focuses its control. Text inputs sit in a `<form>`, so Enter submits (the Lab Partner box).
+13. Toggles (quarantine, units, layers) take effect at once, with no confirm step. A submit button is disabled while its request runs, so a question is never sent twice.
+14. Feedback appears next to what caused it: a check beside "Copy", an outline on the field that is wrong. No toasts in a corner.
+15. Glows, blurs and other decorative layers set `pointer-events: none`, so they never block a click. Large blurs stay on the flame illustrations and must still hold 60 fps.
 
 ## Definition of done (every milestone)
 

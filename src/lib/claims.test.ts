@@ -11,7 +11,7 @@ import {
   SMAC_LONG_TERM_PPM,
   US_LAB_VOLUME_M3,
 } from './cabin'
-import { CLAIMS, citeLabel, getClaim, SOURCES, sourceLink } from './claims'
+import { CLAIMS, citePreview, getClaim, SOURCES, sourceLink, splitEmphasis } from './claims'
 import { normalize } from './normalize'
 import { ALPHA_PMMA_CM2_S, EARTH_LIMIT_O2_PCT, R0_CM } from './physics'
 
@@ -38,6 +38,21 @@ describe('claims.json', () => {
       expect(sourceIds.has(c.sourceId ?? ''), `${c.id} → ${c.sourceId}`).toBe(true)
     }
   })
+
+  it('gives every emphasis as an exact phrase of its own quote', () => {
+    const emphasized = CLAIMS.filter((c) => c.emphasis !== undefined)
+    expect(emphasized.length).toBeGreaterThan(0)
+    for (const c of emphasized) {
+      expect(c.emphasis, c.id).toBeTruthy()
+      expect(c.quote ?? '', c.id).toContain(c.emphasis)
+    }
+  })
+
+  it('underlines the 1g part of the header thesis quote (psi26.impacts)', () => {
+    expect(claim('psi26.impacts').emphasis).toBe(
+      'based on 1-g behavior without consideration of low gravity effects',
+    )
+  })
 })
 
 describe('sources.json', () => {
@@ -47,19 +62,53 @@ describe('sources.json', () => {
       if (s.id !== 'olson-ferkul-2017') expect(sourceLink(s), s.id).toBeTruthy()
     }
   })
+
+  it('gives every source a short name for footnote previews', () => {
+    for (const s of SOURCES) expect(s.short, s.id).toBeTruthy()
+    expect(SOURCES.find((s) => s.id === 'nasa-tm-20210011385')?.short).toBe('BASS-II report')
+    expect(SOURCES.find((s) => s.id === 'psi-102')?.short).toBe('PSI-102')
+  })
 })
 
-describe('citeLabel', () => {
-  it('shows the report page, the PDF page when there is no report page, or the PSI file line', () => {
-    expect(citeLabel(claim('bass2.flam.vs-1g'))).toBe('[p. 76]')
-    expect(citeLabel(claim('bass2.lab-partner'))).toBe('[PDF p. 4]')
-    expect(citeLabel(claim('psi69.pressure'))).toBe('[PSI-69 line 42]')
+// The footnote preview replaced the old [p. 76] badge; the same five locator cases are covered.
+describe('citePreview', () => {
+  it('names the source, then the report page, the PDF page when there is no report page, or the PSI file line', () => {
+    expect(citePreview(claim('bass2.flam.vs-1g'))).toBe('BASS-II report, p. 76')
+    expect(citePreview(claim('bass2.lab-partner'))).toBe('BASS-II report, PDF p. 4')
+    expect(citePreview(claim('psi69.pressure'))).toBe('PSI-69, line 42')
+    expect(citePreview(claim('psi26.impacts'))).toBe('PSI-26, line 69')
   })
 
-  it('shows [calc] for computed values and [row …] for data rows', () => {
-    expect(citeLabel({ id: 'x', topic: '', text: '', kind: 'computed', verified: true })).toBe('[calc]')
-    const row = { id: 'y', topic: '', text: '', kind: 'quoted', verified: true, locator: { row: '129' } } as const
-    expect(citeLabel(row)).toBe('[row 129]')
+  it('says a computed value is calculated, and gives the row for data rows', () => {
+    expect(citePreview({ id: 'x', topic: '', text: '', kind: 'computed', verified: true })).toBe(
+      'Calculated from cited inputs',
+    )
+    const row = {
+      id: 'y',
+      topic: '',
+      text: '',
+      kind: 'quoted',
+      sourceId: 'psi-25',
+      verified: true,
+      locator: { row: '129' },
+    } as const
+    expect(citePreview(row)).toBe('PSI-25, row 129')
+  })
+})
+
+describe('splitEmphasis', () => {
+  it('cuts the quote around its emphasis, keeping every character', () => {
+    const quote = claim('psi26.impacts').quote ?? ''
+    const parts = splitEmphasis(quote, claim('psi26.impacts').emphasis)
+    expect(parts.emphasis).toBe('based on 1-g behavior without consideration of low gravity effects')
+    expect(parts.before.endsWith('segregates material ')).toBe(true)
+    expect(parts.after).toBe('.')
+    expect(parts.before + parts.emphasis + parts.after).toBe(quote)
+  })
+
+  it('leaves the quote whole when there is no emphasis or it is not in the quote', () => {
+    expect(splitEmphasis('A quote.', undefined)).toEqual({ before: 'A quote.', emphasis: '', after: '' })
+    expect(splitEmphasis('A quote.', 'missing')).toEqual({ before: 'A quote.', emphasis: '', after: '' })
   })
 })
 

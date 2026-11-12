@@ -1518,6 +1518,7 @@
     "kind": "quoted",
     "sourceId": "psi-26",
     "quote": "Current NASA spacecraft materials selection is based on a standard test method (NASA–STD–6001 Test 1) that segregates material based on 1-g behavior without consideration of low gravity effects.",
+    "emphasis": "based on 1-g behavior without consideration of low gravity effects",
     "locator": {
       "file": "i_Investigation.txt",
       "line": 69

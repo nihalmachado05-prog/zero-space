@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useId, useRef, type KeyboardEvent } from 'react'
 import { getClaim, getSource, sourceFolder, sourceLink, type Claim } from '../lib/claims'
 import { Cite } from './Cite'
+import { FootnoteScope } from './FootnoteScope'
 import { SweptQuote } from './SweptQuote'
 
 type CitationDrawerProps = {
@@ -14,8 +15,9 @@ const SLIDE_MS = 220
 const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 /**
- * F6: slides in from the right over 220 ms, then the highlight sweeps across the quote.
- * Focus moves in and is trapped; Esc, the Close button or a click outside closes it.
+ * F6: slides in from the right over 220 ms, then the underline draws under the quote's
+ * emphasis phrase. Focus moves in and is trapped; Esc, the Close button or a click outside
+ * closes it. Footnotes inside (a calculation's inputs) are numbered on their own.
  */
 export function CitationDrawer({ claimId, onClose }: CitationDrawerProps) {
   const reduceMotion = useReducedMotion()
@@ -56,7 +58,7 @@ export function CitationDrawer({ claimId, onClose }: CitationDrawerProps) {
       {open && (
         <div className="fixed inset-0 z-50" onKeyDown={onKeyDown}>
           <motion.div
-            className="absolute inset-0 bg-void/60"
+            className="absolute inset-0 bg-graphite/60"
             onClick={onClose}
             aria-hidden="true"
             initial={{ opacity: 0 }}
@@ -93,14 +95,16 @@ export function CitationDrawer({ claimId, onClose }: CitationDrawerProps) {
                 Close
               </button>
             </div>
-            {claim ? (
-              <ClaimDetails key={claim.id} claim={claim} sweepDelayMs={SLIDE_MS} />
-            ) : (
-              <p className="text-sm text-muted">
-                No claim with the id <span className="num">{claimId}</span>.
-              </p>
-            )}
-            <StatusLine verified={claim?.verified === true} computed={claim?.kind === 'computed'} />
+            <FootnoteScope>
+              {claim ? (
+                <ClaimDetails key={claim.id} claim={claim} sweepDelayMs={SLIDE_MS} />
+              ) : (
+                <>
+                  <p className="text-sm text-muted">No claim with the id “{claimId}”.</p>
+                  <StatusLine verified={false} computed={false} />
+                </>
+              )}
+            </FootnoteScope>
           </motion.aside>
         </div>
       )}
@@ -112,10 +116,14 @@ function ClaimDetails({ claim, sweepDelayMs }: { claim: Claim; sweepDelayMs: num
   const source = getSource(claim.sourceId)
   const link = source ? sourceLink(source) : null
   const locator = claim.locator
+  const status = <StatusLine verified={claim.verified} computed={claim.kind === 'computed'} />
   return (
     <>
       {claim.quote && (
-        <SweptQuote quote={claim.quote} highlight={claim.verified} delayMs={sweepDelayMs} />
+        <div className="flex flex-col gap-2">
+          <SweptQuote quote={claim.quote} emphasis={claim.emphasis} delayMs={sweepDelayMs} />
+          {status}
+        </div>
       )}
       {claim.kind === 'computed' && (
         <div className="flex flex-col gap-2 text-sm">
@@ -129,9 +137,11 @@ function ClaimDetails({ claim, sweepDelayMs }: { claim: Claim; sweepDelayMs: num
               ))}
             </p>
           )}
+          {!claim.quote && status}
         </div>
       )}
-      <dl className="grid grid-cols-[8rem_1fr] gap-x-4 gap-y-2 text-sm">
+      {/* The citation itself, so Archivo throughout: mono is for numbers that are data. */}
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-6">
         {source && (
           <>
             <dt className="text-muted">Source</dt>
@@ -139,7 +149,7 @@ function ClaimDetails({ claim, sweepDelayMs }: { claim: Claim; sweepDelayMs: num
               {source.title}
               <span className="text-muted">
                 , {source.publisher}
-                {source.year !== null && <span className="num">, {source.year}</span>}
+                {source.year !== null && `, ${source.year}`}
               </span>
             </dd>
           </>
@@ -147,9 +157,9 @@ function ClaimDetails({ claim, sweepDelayMs }: { claim: Claim; sweepDelayMs: num
         {locator?.pdfPage !== undefined && (
           <>
             <dt className="text-muted">Report page</dt>
-            <dd className="num">{locator.reportPage ?? 'Not stated'}</dd>
+            <dd className="tabular-nums">{locator.reportPage ?? 'Not stated'}</dd>
             <dt className="text-muted">PDF page</dt>
-            <dd className="num">
+            <dd className="tabular-nums">
               {locator.pdfPage}
               {locator.spansNextPage && `–${locator.pdfPage + 1}`}
             </dd>
@@ -162,7 +172,7 @@ function ClaimDetails({ claim, sweepDelayMs }: { claim: Claim; sweepDelayMs: num
               {sourceFolder(claim.sourceId)}/{locator.file}
             </dd>
             <dt className="text-muted">Line</dt>
-            <dd className="num">{locator.line}</dd>
+            <dd className="tabular-nums">{locator.line}</dd>
           </>
         )}
       </dl>
@@ -184,14 +194,14 @@ function ClaimDetails({ claim, sweepDelayMs }: { claim: Claim; sweepDelayMs: num
 function StatusLine({ verified, computed }: { verified: boolean; computed: boolean }) {
   if (!verified) {
     return (
-      <p className="mt-auto flex items-center gap-2 text-sm text-red">
+      <p className="flex items-center gap-2 text-sm text-red">
         <CircleAlert aria-hidden="true" className="size-4" />
         Not verified
       </p>
     )
   }
   return (
-    <p className="mt-auto flex items-center gap-2 text-sm text-emerald">
+    <p className="flex items-center gap-2 text-sm text-emerald">
       <CircleCheck aria-hidden="true" className="size-4" />
       {computed ? 'Inputs checked' : 'Quote checked'}
     </p>

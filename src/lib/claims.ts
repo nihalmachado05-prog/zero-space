@@ -1,11 +1,15 @@
 // Read access to src/data/claims.json and src/data/sources.json, with the shapes from SPEC §6.
 // Locator also carries `file` and `line` for claims quoted from PSI metadata files.
+// Source.short names a source in a footnote preview; Claim.emphasis is the phrase the drawer
+// underlines.
 import claimsData from '../data/claims.json'
 import sourcesData from '../data/sources.json'
 
 export interface Source {
   id: string
   title: string
+  /** A short name for footnote previews: "BASS-II report", "PSI-26". */
+  short?: string
   publisher: string
   year: number | null
   doi: string | null
@@ -36,6 +40,8 @@ export interface Claim {
   sourceId?: string
   locator?: Locator | null
   quote?: string
+  /** A phrase inside `quote` (an exact substring). The drawer underlines only this phrase. */
+  emphasis?: string
   formula?: string
   inputs?: string[]
   verified: boolean
@@ -65,17 +71,33 @@ export function sourceFolder(sourceId: string): string {
   return sourceId.toUpperCase()
 }
 
-/** The text of a Cite badge: [p. 76], [calc], [row 129], [PDF p. 4] or [PSI-69 line 42]. */
-export function citeLabel(claim: Claim): string {
-  if (claim.kind === 'computed') return '[calc]'
+/**
+ * The one-line footnote preview: the source's short name plus where in it the quote is.
+ * "BASS-II report, p. 76", "BASS-II report, PDF p. 4", "PSI-69, line 42", "PSI-25, row 129".
+ */
+export function citePreview(claim: Claim, source: Source | undefined = getSource(claim.sourceId)): string {
+  if (claim.kind === 'computed') return 'Calculated from cited inputs'
+  const name = source?.short ?? source?.title ?? 'Source'
   const locator = claim.locator
-  if (locator?.row) return `[row ${locator.row}]`
-  if (typeof locator?.reportPage === 'number') return `[p. ${locator.reportPage}]`
-  if (typeof locator?.pdfPage === 'number') return `[PDF p. ${locator.pdfPage}]`
-  if (locator?.file && claim.sourceId) {
-    return `[${sourceFolder(claim.sourceId)} line ${locator.line}]`
+  if (locator?.row) return `${name}, row ${locator.row}`
+  if (typeof locator?.reportPage === 'number') return `${name}, p. ${locator.reportPage}`
+  if (typeof locator?.pdfPage === 'number') return `${name}, PDF p. ${locator.pdfPage}`
+  if (typeof locator?.line === 'number') return `${name}, line ${locator.line}`
+  return name
+}
+
+/** A quote cut around its emphasis phrase. `emphasis` is '' when there is none or it isn't in the quote. */
+export function splitEmphasis(
+  quote: string,
+  emphasis: string | undefined,
+): { before: string; emphasis: string; after: string } {
+  const at = emphasis ? quote.indexOf(emphasis) : -1
+  if (!emphasis || at === -1) return { before: quote, emphasis: '', after: '' }
+  return {
+    before: quote.slice(0, at),
+    emphasis,
+    after: quote.slice(at + emphasis.length),
   }
-  return '[source]'
 }
 
 /** A link for a source: its URL, else its DOI. */

@@ -23,8 +23,9 @@ type PanelProps = {
 }
 
 /**
- * An instrument panel: a titled 1px frame on the page background, with "+" ticks at its
- * four outer corners. Use it for chambers and charts only, never for text sections.
+ * An instrument panel: a titled 1px frame with "+" ticks at its four outer corners. The
+ * inside is a window, pure black, so flames and plotted data are the only light in it.
+ * Use it for chambers and charts only, never for text sections.
  */
 export function Panel({ title, className = '', children }: PanelProps) {
   const headingId = useId()
@@ -33,7 +34,7 @@ export function Panel({ title, className = '', children }: PanelProps) {
       <h2 id={headingId} className="text-sm leading-6 font-semibold">
         {title}
       </h2>
-      <div className="relative min-h-0 flex-1 border border-line">
+      <div className="relative min-h-0 flex-1 border border-line bg-window">
         <CornerTick className="-top-[5px] -left-[5px]" />
         <CornerTick className="-top-[5px] -right-[5px]" />
         <CornerTick className="-bottom-[5px] -left-[5px]" />

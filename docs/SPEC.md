@@ -142,7 +142,7 @@ F6 citation drawer slides over from the right on any view.
 | F3 | RANK: Orbital Risk Index, flammability map, ignition race | The leaderboard reorders live as weights change; the ignition race plays |
 | F4 | INTERPRET: cabin fire, toxicity and suppression simulator | Live strip charts cross alarm lines while the chamber flame reacts |
 | F5 | Lab Partner AI | Answers stream in; tool calls visibly drive the other modules |
-| F6 | Citation drawer | Slides in with the matched words of the quote highlighted |
+| F6 | Citation drawer | Slides in, then an underline draws under the quote's emphasis phrase |
 
 **P1:**
 - F7 Investigation index: AI summaries of the challenge-named investigations, a "Why BASS-II" strip, and relevance ranking.
@@ -543,19 +543,19 @@ Each module belongs to one view: `set_burn_twin` to Overview, `filter_tests` to 
 
 ### F6. Citation drawer (P0, global)
 
-**`<Cite id>`** renders a small bracket badge: `[p. 76]` for report quotes, `[calc]` for computed values, `[row 129]` for data rows.
+**`<Cite id>`** renders a scientific footnote: a small cyan superscript number, ¹ ² ³ in order of appearance on the current view (the header counts as part of every view; a claim cited twice keeps its number), in Archivo with no brackets. Hover or keyboard focus shows a one-line preview: the source's `short` name plus page, line or row ("BASS-II report, p. 76", "PSI-26, line 69", "PSI-25, row 129"); computed values say "Calculated from cited inputs". A click opens the drawer.
 
 **The drawer shows:**
 - the claim text
-- the verbatim quote with the matched words highlighted
-- the source title, report page, PDF page and a link
+- the verbatim quote in Source Serif 4 at 18px, with a 2px cyan rule on the left and no fill; if the claim has an `emphasis`, only that phrase gets a thin underline
+- directly under the quote, the status line with its icon: emerald "Quote checked" or red "Not verified"
+- the source title, report page and PDF page (or file and line) as a compact two-column list, and "Open the source"
 - for computed values, the formula with each input as its own Cite
 - for data rows, the raw CSV cells
-- a status line: emerald "Quote checked" or red "Not verified"
 
 Unverified claims never appear outside the drawer.
 
-**Signature motion:** slides in over 220 ms, then the highlight sweeps across the matched words.
+**Signature motion:** slides in over 220 ms, then the underline draws under the emphasis phrase, left to right across line breaks.
 
 **Accessibility:** focus moves into the drawer and is trapped; Esc closes it and returns focus.
 
@@ -607,9 +607,10 @@ Unverified claims never appear outside the drawer.
 ```ts
 export type GravityClass = 'micro' | 'partial' | 'normal' | 'mixed'
 
-export interface Source { id: string; title: string; publisher: string; year: number | null; doi: string | null; url: string | null; kind: 'report' | 'dataset' | 'paper' | 'poster' | 'web'; credit?: string }
+export interface Source { id: string; title: string; short?: string; publisher: string; year: number | null; doi: string | null; url: string | null; kind: 'report' | 'dataset' | 'paper' | 'poster' | 'web'; credit?: string }
 
 export interface Locator { pdfPage?: number; reportPage?: number | null; spansNextPage?: boolean; table?: string; row?: string; file?: string; line?: number }
+// Source.short: the name in footnote previews ("BASS-II report", "PSI-26", "Olson & Ferkul 2017").
 // file and line: PSI metadata quotes. file is inside pipeline/sources/<SOURCE-ID>/ (sourceId "psi-98" is folder "PSI-98"); line is 1-based.
 
 export interface Claim {
@@ -617,6 +618,7 @@ export interface Claim {
   value?: number; unit?: string
   kind: 'quoted' | 'computed'
   sourceId?: string; locator?: Locator | null; quote?: string   // quoted
+  emphasis?: string                                             // quoted: an exact phrase of quote, underlined in the drawer
   formula?: string; inputs?: string[]                           // computed
   verified: boolean
 }
