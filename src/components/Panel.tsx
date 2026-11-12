@@ -17,23 +17,31 @@ function CornerTick({ className }: { className: string }) {
 
 type PanelProps = {
   /** Plain-words title, shown above the frame. */
-  title: string
+  title?: string
+  /** For a panel with no title above it: the name screen readers give the panel. */
+  label?: string
   className?: string
   children?: ReactNode
 }
 
 /**
- * An instrument panel: a titled 1px frame with "+" ticks at its four outer corners. The
- * inside is a window, pure black, so flames and plotted data are the only light in it.
- * Use it for chambers and charts only, never for text sections.
+ * An instrument panel: a 1px frame with "+" ticks at its four outer corners, and a title above
+ * it when one is given. The inside is a window, pure black, so flames and plotted data are the
+ * only light in it. Use it for chambers and charts only, never for text sections.
  */
-export function Panel({ title, className = '', children }: PanelProps) {
+export function Panel({ title, label, className = '', children }: PanelProps) {
   const headingId = useId()
   return (
-    <section aria-labelledby={headingId} className={`flex min-h-0 flex-col gap-2 ${className}`}>
-      <h2 id={headingId} className="text-sm leading-6 font-semibold">
-        {title}
-      </h2>
+    <section
+      aria-labelledby={title ? headingId : undefined}
+      aria-label={title ? undefined : label}
+      className={`flex min-h-0 flex-col gap-2 ${className}`}
+    >
+      {title && (
+        <h2 id={headingId} className="text-sm leading-6 font-semibold">
+          {title}
+        </h2>
+      )}
       <div className="relative min-h-0 flex-1 border border-line bg-window">
         <CornerTick className="-top-[5px] -left-[5px]" />
         <CornerTick className="-top-[5px] -right-[5px]" />

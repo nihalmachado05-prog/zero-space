@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { IGNITION_LIMIT_O2_PCT, PULSE_HZ } from './burnTwin'
 import {
   CO2_PER_O2,
   CO_PPM_PER_PCT_CO2,
@@ -119,6 +120,13 @@ describe('model constants match their quotes', () => {
     expect(claim('bass2.ign.alpha-pmma').value).toBe(ALPHA_PMMA_CM2_S)
     expect(claim('bass2.flam.vs-1g').value).toBe(EARTH_LIMIT_O2_PCT)
     expect(quoteOf('bass2.flam.stretch-def')).toContain('a = (3/2)(U/r)')
+  })
+
+  it('burnTwin.ts', () => {
+    expect(claim('bass2.ign.limit-14.5').value).toBe(IGNITION_LIMIT_O2_PCT)
+    expect(quoteOf('bass2.ign.limit-14.5')).toContain(`~${IGNITION_LIMIT_O2_PCT} percent O2`)
+    expect(claim('bass2.osc-1.1hz').value).toBe(PULSE_HZ)
+    expect(quoteOf('bass2.osc-1.1hz')).toContain(`${PULSE_HZ} Hz`)
   })
 
   it('cabin.ts', () => {

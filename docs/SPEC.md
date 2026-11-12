@@ -114,7 +114,7 @@ F6 citation drawer slides over from the right on any view.
 
 | Route | View | What fills the main area |
 |---|---|---|
-| `#/` | Overview | F1 Burn Twin. The Earth and Orbit chambers sit side by side. The Eq. 6.1 inset is under them on the right and the controls are under them on the left. |
+| `#/` | Overview | F1 Burn Twin. One black stage with Earth on the left, Orbit on the right and the oxygen gauge on the seam. Under it, a slim strip with the controls and, at its right end, the Eq. 6.1 inset. |
 | `#/summarize` | Summarize | F2 telemetry explorer |
 | `#/rank` | Rank | F3 Orbital Risk Index, flammability map, ignition race |
 | `#/interpret` | Interpret | F4 cabin fire, toxicity and suppression simulator |
@@ -127,7 +127,7 @@ F6 citation drawer slides over from the right on any view.
 - A view change is a 150 ms crossfade, and instant under reduced motion.
 
 **Shell:**
-- Header: the product name in bold, the thesis line in muted text, and the navigation. The active view has a 2px cyan underline and nothing else.
+- Header: the product name in bold, the thesis line in full-brightness ink, and the navigation. The active view has a 2px cyan underline and nothing else.
 - Audit strip: 40px, no box and no title. Its text and segment bar are F0.
 - Lab Partner dock: collapsed by default. Open it from the rail button.
 - Design rules (no uppercase labels, frames only on chambers and charts, an 8px grid with 24px gutters) are in `CLAUDE.md`.
@@ -223,47 +223,78 @@ The old spec's headline counts (129, 122, 5, 2 and 4) are confirmed. Everything 
 **Purpose:** show the whole thesis in ten seconds without reading.
 
 **Layout:**
-- Two chambers side by side, each a black duct with a 1px frame, sized by the main area (§4). The flames scale to fit.
-- Under the chambers, on the right, an Eq. 6.1 inset chart (O2 vs flow, log x-axis) with a moving dot. No box around it.
-- Under the chambers, on the left, the controls. No box around them either: O2 slider (12.0–23.0%), flow U (0.2–40 cm/s, log), rod size (6.35, 9.525 or 12.7 mm), and the buttons "Ignite", "Drain oxygen" and "Reset".
+- One frameless, full-bleed, pure black stage under the header and audit bar. No boxes, frames or corner ticks.
+- The left half is "Earth, 1g" and the right half is "Orbit, ISS glovebox". Each is labeled once, small, at the top of its half.
+- **The seam between the halves is the oxygen gauge:** a thin vertical scale from 23% at the top to 12% at the bottom, with fine tick marks and numbers in mono.
+- **Two limit marks on the gauge:**
+  - Left: "Earth limit 15.4%", with the line "1g limit, PMMA rods, 4 cm/s forced flow" (`bass2.flam.vs-1g`).
+  - Right: "Orbit limit 13.61%, model". It is the Eq. 6.1 value for the current flow and rod size, so it moves when they change (`bass2.flam.stretch-def`, `bass2.flam.r0`, `bass2.flam.eq61-branches`).
+- **The oxygen line:** the current O2 is a thin, faintly glowing horizontal line across the full stage width, at its height on the gauge, with its value riding on it at the left edge.
+- Under the stage, a slim strip on the page background:
+  - the controls: O2 slider (12.0–23.0%), orbit airflow U (0.2–40 cm/s, log), rod size (6.35, 9.525 or 12.7 mm) as a three-option segmented control, and the buttons "Ignite", "Drain oxygen" and "Reset"
+  - at its right end, the Eq. 6.1 inset (Recharts) as a small black panel: the curve for the selected rod (O2 vs flow, log x-axis), the 15.4% and 13.4% lines (`bass2.flam.vs-1g`, `bass2.flam.derate`), and a dot that moves with O2 and U
+- At 1440×900 the stage, the controls and the inset are all visible without scrolling.
 
-**Left chamber, "Earth · 1g · upward burning":**
-- A teardrop flame, yellow-orange, with a gentle flicker.
-- It goes out when O2 drops below 15.4%, with the label "1g limit for PMMA rods with 4 cm/s forced flow" (`bass2.flam.vs-1g`).
+**Rendering:**
+- One `<canvas>` for the whole stage, sharp on high-DPI screens, animated with `requestAnimationFrame` and refs. React never re-renders per frame.
+- The gauge text, annotations, stamps and tags are an HTML overlay on top of it.
+- Flames are light, not shapes: layered radial gradients drawn with additive blending, plus a blurred copy for bloom. No outlines.
+- The flame, rod and airflow drawing are reusable functions in `src/draw/`; F4 reuses the orbit flame.
+- Each rod tip sits near the center of its half. At the default settings each flame fills about a quarter to a third of its half's width.
+- The flames and airflow shift a few pixels in parallax with the pointer, more than the gauge does, and the stage edges have a soft vignette.
+- The loop pauses when the tab is hidden or the stage is off screen.
 
-**Right chamber, "Orbit · ISS glovebox duct · forced flow U":**
-- A cap-shaped flame on the rod tip.
+**Earth half (illustration):**
+- The rod stands vertically like a candle, with the flame on its tip.
+- A teardrop rising upward: blue base, orange-yellow body, warm white core. It flickers irregularly (a small random sway and stretch, about 10 times a second), with a faint smoke wisp rising above it.
+- It goes out when O2 drops below 15.4% (`bass2.flam.vs-1g`): it collapses over 400 ms and leaves a wisp drifting up.
+
+**Orbit half (illustration):**
+- Airflow comes from the left and meets the rod's tip head-on (axial stagnation flow, the setup Eq. 6.1 was fitted for). The rod runs toward the flow from the right.
+- The airflow is thin cyan-white streaks, at most about 300, moving left to right at a speed proportional to U and parting around the rod tip. They stay inside the right half.
+- The flame is a dome over the tip, drawn to match NASA's photos of near-limit flames (Fig. 6.3, `bass2.fig63`): a thin bright shell with a translucent fill, open downstream.
+- Higher U flattens it against the tip.
 - Its size scales with the margin above the Eq. 6.1 limit for the current U and rod.
-- Its color moves from yellow toward all-blue as the margin shrinks (`bass2.blue-hemispherical`).
+- Its color moves from yellow-white toward a translucent all-blue as the margin shrinks (`bass2.blue-hemispherical`).
+- It is steady, with no flicker.
 - **1.1 Hz pulse** (`bass2.osc-1.1hz`): only on the quenching branch (a < 10.38) and only when the margin is under 0.15 points.
-- It goes out at the Eq. 6.1 limit.
+- It goes out at the Eq. 6.1 limit: it fades over 600 ms into a faint spherical halo that doesn't rise, because there's no buoyancy.
+- Each rod is lit by its flame: a warm highlight near the tip that fades with the flame.
 
-**Model readout,** top-left of each chamber in mono with a "Model" tag:
-- O2 %, U cm/s, a in s⁻¹, limit %, margin.
-- The Earth chamber shows only O2, the limit of 15.4%, and the margin.
+**Annotations** (the model readout; every value comes from `physics.ts`; numbers in mono, words in Archivo, 12px, ink at 70%):
+- A thin corner-bracket box tracks the orbit flame, labeled with the live stretch rate, e.g. "a 9.44 s⁻¹".
+- Under each flame, its live O2 margin to its limit, with a small "Model" tag on the orbit side.
+- O2 is on the oxygen line and its slider, U is on its slider, and each limit is on the gauge.
+- No fake sensor channels and no hardware part numbers.
 
 **Ignite:**
 - The orbit rod won't light below 14.5% O2. It shows "Won't ignite below ~14.5% (BASS-II rods)" (`bass2.ign.limit-14.5`).
 - Flames lit higher can survive lower O2 (`bass2.ign.survive-13.6`).
+- A flame also won't light below its own limit. The Earth side shows "Won't stay lit below 15.4%"; the orbit side shows "Below the Eq. 6.1 limit at this airflow (model)".
 
 **Drain oxygen, the signature motion:**
 1. Both flames are lit at 17.0%.
-2. O2 falls linearly to 13.0% over 10 s of display time. A small caption reads "In BASS-II, oxygen fell gradually as the flame burned" (`bass2.o2-gradual`).
-3. At 15.4% the Earth flame collapses over 400 ms and is stamped "Out at 15.4%".
-4. The orbit flame shrinks, turns blue, pulses, and is stamped "Out at 13.61% (model)" at the U = 2 cm/s, 6.35 mm defaults.
-5. The result banner reads "Kept burning 1.79 points of oxygen longer", with Cites. The 1.79 is computed, not typed.
-6. P1: a "Show NASA's photo" button opens the real Fig. 6.3 image with its credit (`bass2.fig63`).
+2. O2 falls linearly to 13.0% over 10 s of display time, and the oxygen line sinks with it like a falling tide. A small caption on the line reads "In BASS-II, oxygen fell gradually as the flame burned" (`bass2.o2-gradual`).
+3. Each flame goes out the moment the line passes its own limit mark.
+4. At 15.4% the Earth flame collapses over 400 ms and is stamped "Out at 15.4%" beside it.
+5. The orbit flame shrinks, turns blue, pulses, and is stamped "Out at 13.61% (model)" beside it, at the U = 2 cm/s, 6.35 mm defaults.
+6. The stamps appear with a 200 ms fade and a slight scale from 0.96.
+7. The result "Kept burning 1.79 points of oxygen longer" appears beside the gauge, in the gap between the two marks, with Cites. The 1.79 is computed, not typed. If the orbit flame went out first (very low flow), it reads "Went out … points of oxygen sooner".
+8. P1: a "Show NASA's photo" button opens the real Fig. 6.3 image with its credit (`bass2.fig63`).
+
+Moving the O2 slider during a drain stops the drain.
 
 **Labels:**
-- Each flame has a small "Illustration" tag.
-- The chamber outline is not to scale, and no scale bar is drawn.
+- Each half has a small "Illustration" tag in its bottom corner.
+- The drawings are not to scale, and no scale bar is drawn.
 
 **Acceptance:**
 - At U = 2 and 6.35 mm, the drain stops the Earth flame at 15.40 and the orbit flame at 13.61 (±0.01).
 - The pulse appears only under the conditions above.
-- It holds 60 fps: flame shape and color are driven by `motion` values or `requestAnimationFrame` plus refs.
-- Under reduced motion there is no flicker or pulse, and states change instantly.
+- It holds 60 fps at 1440×900: the canvas and every per-frame value are driven by `requestAnimationFrame` plus refs, never by React state per frame.
+- Under reduced motion there is no flicker, pulse, parallax or drifting particle, and states change instantly (the drain jumps to its end).
 - Every number has a working Cite.
+- The moment where the Earth flame is out and the orbit flame glows blue above the sinking oxygen line is worth a screenshot.
 
 ### F2. SUMMARIZE: telemetry explorer (P0)
 
@@ -913,7 +944,7 @@ That's about 35–38 hours: 6–7 hours a day, every day. There is no slack.
 
 ### M2. Burn Twin (Tue)
 
-> Read CLAUDE.md and docs/SPEC.md F1 and F3b. Build views/BurnTwin: the two chambers with illustrated SVG flames, the model readouts, the Eq. 6.1 inset, the controls and the Drain oxygen sequence exactly as F1 specifies. Drive flame shape and color with motion values, not React state per frame. Put the state in a small store shared with the future flammability map.
+> Read CLAUDE.md and docs/SPEC.md F1 and F3b. Build views/BurnTwin: the black stage on one canvas with the Earth and orbit flames, the oxygen gauge on the seam, the HTML annotations, the controls strip, the Eq. 6.1 inset and the Drain oxygen sequence exactly as F1 specifies. Drive the canvas and every per-frame value with requestAnimationFrame and refs, not React state per frame. Put the state in a small store shared with the future flammability map.
 
 **Done when:**
 - At U = 2 and 6.35 mm, the drain kills the Earth flame at 15.40 and the orbit flame at 13.61.

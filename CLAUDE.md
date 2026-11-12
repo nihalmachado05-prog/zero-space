@@ -58,6 +58,10 @@ src/
   lib/audit.ts               BASS-II spreadsheet checks. Pure, fully tested.
   lib/risk.ts                Orbital Risk Index. Pure, fully tested.
   lib/relevance.ts           investigation relevance scoring (P1). Pure, fully tested.
+  lib/burnTwin.ts            Burn Twin state: which flame is lit, where each went out, the drain. Pure, fully tested. lib/burnStore.ts is its store and React hook.
+  lib/twinLayout.ts          where things sit on the Burn Twin stage. Pure, tested.
+  draw/                      canvas drawing for the stage: flames, rod, airflow, smoke, bloom. Illustration only. M5 reuses the orbit flame.
+  components/twin/           the Burn Twin's parts: stage and its animation loop, gauge, annotations, controls, Eq. 6.1 inset
   data/claims.json           every sourced number and sentence shown in the UI
   data/sources.json          bibliography
   components/                one component per file, under 250 lines

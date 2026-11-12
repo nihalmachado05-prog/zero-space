@@ -74,6 +74,58 @@
   }
 }
 
+/* A range input drawn as a hairline track with a small thumb. The input is 24px tall, so the
+   thumb's hit area is larger than what it draws. */
+@utility slider {
+  appearance: none;
+  height: 1.5rem;
+  background: transparent;
+  cursor: pointer;
+
+  &::-webkit-slider-runnable-track {
+    height: 2px;
+    background: var(--color-line);
+  }
+  &::-moz-range-track {
+    height: 2px;
+    background: var(--color-line);
+  }
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 10px;
+    height: 18px;
+    margin-top: -8px;
+    border-radius: 1px;
+    background: var(--color-ink);
+  }
+  &::-moz-range-thumb {
+    width: 10px;
+    height: 18px;
+    border: 0;
+    border-radius: 1px;
+    background: var(--color-ink);
+  }
+  &:active::-webkit-slider-thumb {
+    background: var(--color-cyan);
+  }
+  &:active::-moz-range-thumb {
+    background: var(--color-cyan);
+  }
+}
+
+/* Stamps and results on the Burn Twin stage: a 200 ms fade with a slight scale from 0.96,
+   on a strong ease-out. Set origin-left or origin-right so it grows from its anchored side. */
+@utility appear {
+  transition:
+    opacity 200ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
 /* Under reduced motion every animation becomes an instant state change. */
 @media (prefers-reduced-motion: reduce) {
   *,

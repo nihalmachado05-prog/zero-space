@@ -19,7 +19,7 @@ export function Header({ active }: HeaderProps) {
         <a href={formatHash('overview')} className="text-lg font-bold">
           ZERO-DRAFT
         </a>
-        <p className="hidden text-sm text-muted lg:block">
+        <p className="hidden text-sm lg:block">
           Earth fire tests miss how materials burn in orbit.
           <Cite id="psi26.impacts" />
         </p>

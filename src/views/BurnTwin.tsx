@@ -1,17 +1,25 @@
-import { Note } from '../components/Note'
-import { Panel } from '../components/Panel'
+import { useMemo } from 'react'
+import { Eq61Inset } from '../components/twin/Eq61Inset'
+import { TwinControls } from '../components/twin/TwinControls'
+import { createFrameBus, FrameBusContext } from '../components/twin/twinFrame'
+import { TwinStage } from '../components/twin/TwinStage'
 
 /**
- * F1 Earth vs Orbit Burn Twin. Empty shell: the flames, readouts, inset chart and controls
- * arrive in M2. Two columns, so the chambers, the controls and the inset share their edges.
+ * F1 Earth vs Orbit Burn Twin: the black stage, and under it a slim strip with the controls
+ * and, at its right end, the Eq. 6.1 inset. The state lives in lib/burnStore; the frame bus
+ * carries each animation frame from the stage's loop to the parts that show live values.
  */
 export function BurnTwin() {
+  const bus = useMemo(() => createFrameBus(), [])
   return (
-    <div className="grid h-full min-h-[34rem] grid-cols-2 grid-rows-[minmax(0,1fr)_12rem] gap-6 p-6">
-      <Panel title="Earth, 1g" />
-      <Panel title="Orbit, ISS glovebox" />
-      <Note>Controls arrive in M2</Note>
-      <Note>Eq. 6.1 inset arrives in M2</Note>
-    </div>
+    <FrameBusContext.Provider value={bus}>
+      <div className="flex h-full min-h-[36rem] flex-col">
+        <TwinStage />
+        <div className="flex shrink-0 items-stretch gap-8 border-t border-line px-6 py-4">
+          <TwinControls />
+          <Eq61Inset />
+        </div>
+      </div>
+    </FrameBusContext.Provider>
   )
 }
