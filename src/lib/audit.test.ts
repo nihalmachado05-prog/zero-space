@@ -8,6 +8,7 @@ import bass2File from '../../public/data/bass2.json'
 import auditFile from '../../public/data/audit.json'
 import {
   auditGroups,
+  auditHeadline,
   BURN_CO2_RISE_PCT,
   CO2_RESOLUTION_PCT,
   COLUMNS,
@@ -306,10 +307,72 @@ describe('checked against NASA (SPEC F2, within 1 ppm)', () => {
     expect(Math.abs((s.max ?? 0) - 389)).toBeLessThan(1)
   })
 
-  it('lowest final O2: 13.6% with confirmed burning (O4), 13.5% in the whole file (O12)', () => {
+  it('lowest final O2: 13.6% with confirmed burning (O4), 13.5% among usable rows (O12)', () => {
     expect(checks.lowestBurning).toEqual({ value: 13.6, testId: 'O4' })
     expect(checks.lowestUsable).toEqual({ value: 13.5, testId: 'O12' })
     expect(median([checks.lowestBurning?.value ?? 0])).toBe(getClaim('bass2.ign.survive-13.6')?.value)
+  })
+})
+
+describe('CO per CO2, mean and median, from per-test-expected.json', () => {
+  // NASA says "on average" and doesn't list which tests it averaged, so the panel shows both.
+  // Expected values from the M3.1 brief; the fixture rounds coPerCo2 to 0.1, so within 0.05.
+  const family = (entity: string) => (entity.startsWith('pmma-rod') ? 'rod' : entity.startsWith('pmma-slab') ? 'slab' : 'other')
+  const fromFixture = (include: (t: PerTest) => boolean) => {
+    const values = Object.values(perTest)
+      .filter((t) => t.burnConfirmed && t.coPerCo2 !== null && include(t))
+      .map((t) => t.coPerCo2 as number)
+    return { n: values.length, median: median(values) ?? NaN, mean: values.reduce((a, b) => a + b, 0) / values.length }
+  }
+  const checks = nasaChecks(rows)
+  const cases = [
+    {
+      name: 'opposed slabs',
+      fixture: fromFixture((t) => family(t.entity) === 'slab' && t.flowConfig === 'Opposed'),
+      ours: checks.opposedSlabs,
+      expected: { n: 18, median: 366.7, mean: 398.4 },
+    },
+    {
+      name: 'concurrent and stagnation rods',
+      fixture: fromFixture((t) => family(t.entity) === 'rod' && (t.flowConfig === 'Concurrent' || t.flowConfig === 'Stagnation')),
+      ours: checks.concurrentAndStagnationRods,
+      expected: { n: 18, median: 539.1, mean: 487.9 },
+    },
+    {
+      name: 'concurrent rods alone',
+      fixture: fromFixture((t) => family(t.entity) === 'rod' && t.flowConfig === 'Concurrent'),
+      ours: checks.concurrentRods,
+      expected: { n: 9, median: 513.8, mean: 432.9 },
+    },
+    {
+      name: 'stagnation rods alone',
+      fixture: fromFixture((t) => family(t.entity) === 'rod' && t.flowConfig === 'Stagnation'),
+      ours: checks.stagnationRods,
+      expected: { n: 9, median: 550.0, mean: 543.0 },
+    },
+  ]
+
+  for (const { name, fixture, ours, expected } of cases) {
+    it(`${name}: median ${expected.median}, mean ${expected.mean} over ${expected.n} tests`, () => {
+      expect(fixture.n).toBe(expected.n)
+      expect(Math.abs(fixture.median - expected.median)).toBeLessThanOrEqual(0.05)
+      expect(Math.abs(fixture.mean - expected.mean)).toBeLessThanOrEqual(0.05)
+      // And the same from the raw CSV.
+      expect(ours.n).toBe(expected.n)
+      expect(Math.abs((ours.median ?? NaN) - fixture.median)).toBeLessThanOrEqual(0.05)
+      expect(Math.abs((ours.mean ?? NaN) - fixture.mean)).toBeLessThanOrEqual(0.05)
+    })
+  }
+})
+
+describe('the SUMMARIZE headline, from audit.json alone', () => {
+  it('7 of 129 set aside, 65 burning, lowest 13.6% (O4)', () => {
+    expect(auditHeadline(auditFile)).toEqual({
+      quarantined: 7,
+      total: 129,
+      burnConfirmed: 65,
+      lowestBurning: { value: 13.6, testId: 'O4' },
+    })
   })
 })
 
@@ -325,6 +388,7 @@ describe('the generated files', () => {
     expect(auditFile.counts).toEqual(summary.counts)
     expect(auditFile.byPi).toEqual(summary.byPi)
     expect(auditFile.testIds).toEqual(summary.testIds)
+    expect(auditFile.lowestBurningO2).toEqual(nasaChecks(rows).lowestBurning)
   })
 
   it('found every Appendix A flow quote on its page', () => {

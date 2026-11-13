@@ -42,10 +42,10 @@ function BinTooltip({ active, payload, unit, decimals }: { active?: boolean; pay
   if (!active || !bin) return null
   return (
     <div className="rounded-sm border border-line bg-panel px-2 py-1 text-xs leading-4 text-ink">
-      <span className="num">
+      <span className="tabular-nums">
         {bin.x0.toFixed(decimals)} to {bin.x1.toFixed(decimals)}
       </span>{' '}
-      {unit}: <span className="num">{bin.count}</span> {bin.count === 1 ? 'test' : 'tests'}
+      {unit}: <span className="tabular-nums">{bin.count}</span> {bin.count === 1 ? 'test' : 'tests'}
     </div>
   )
 }
@@ -126,7 +126,7 @@ export function DistributionStrip({ rows }: { rows: Bass2Row[] }) {
           <h3 className="flex items-baseline justify-between gap-2 text-sm leading-5 font-semibold">
             {chart.title}
             <span className="text-xs font-normal text-muted">
-              <span className="num">{chart.n}</span> tests
+              <span className="tabular-nums">{chart.n}</span> tests
             </span>
           </h3>
           <Panel label={chart.title} className="h-44">
@@ -155,14 +155,14 @@ export function DistributionStrip({ rows }: { rows: Bass2Row[] }) {
           </Panel>
           {chart === charts.drop && (
             <p className="text-xs leading-5 text-muted">
-              The amber band is inside the O2 sensor’s ±<span className="num">{O2_RESOLUTION_PCT}</span> resolution
+              The amber band is inside the O2 sensor’s ±<span className="tabular-nums">{O2_RESOLUTION_PCT}</span> resolution
               <Cite id="bass2.sensor.o2-res" />
             </p>
           )}
           {chart === charts.yields && (
             <p className="text-xs leading-5 text-muted">
-              Dashed lines: NASA’s averages, about <span className="num">{slab}</span> for opposed slabs
-              <Cite id="bass2.co.370" /> and <span className="num">{rod}</span> for concurrent rods
+              Dashed lines: NASA’s averages, about <span className="tabular-nums">{slab}</span> for opposed slabs
+              <Cite id="bass2.co.370" /> and <span className="tabular-nums">{rod}</span> for concurrent rods
               <Cite id="bass2.co.550" />
             </p>
           )}

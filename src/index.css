@@ -53,9 +53,17 @@
   }
 }
 
-/* Numbers, slider values, axis ticks, table cells and timestamps use this. */
+/* Numbers that stand alone: readouts, slider values, axis ticks, table cells, timestamps and the
+   "Show the math" sum. A number inside a sentence or chip is Archivo with tabular-nums instead. */
 @utility num {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Test ids (O4, P22b): Archivo semibold, so the letter O never reads as a zero. */
+@utility test-id {
+  font-family: var(--font-sans);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 

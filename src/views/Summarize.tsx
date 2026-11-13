@@ -1,25 +1,28 @@
-import { X } from 'lucide-react'
 import { LayoutGroup } from 'motion/react'
 import { useCallback, useEffect, useMemo } from 'react'
-import { AnimatedNumber } from '../components/AnimatedNumber'
 import { Note } from '../components/Note'
-import { BriefingBox } from '../components/summarize/BriefingBox'
 import { CheckedAgainstNasa } from '../components/summarize/CheckedAgainstNasa'
 import { DistributionStrip } from '../components/summarize/DistributionStrip'
 import { FilterStrip } from '../components/summarize/FilterStrip'
 import { QuarantineBay } from '../components/summarize/QuarantineBay'
 import { RecordDrawer } from '../components/summarize/RecordDrawer'
+import { SummaryHeader } from '../components/summarize/SummaryHeader'
 import { TestWall } from '../components/summarize/TestWall'
-import { WallLegend, WallReadout } from '../components/summarize/WallKey'
-import { forensicClaimId, isQuarantined, o2Forensic, type Bass2File, type O2Forensic } from '../lib/audit'
+import { TestBrief, WallLegend } from '../components/summarize/WallKey'
+import {
+  forensicClaimId,
+  isQuarantined,
+  o2Forensic,
+  type AuditFile,
+  type Bass2File,
+  type O2Forensic,
+} from '../lib/audit'
 import { useAuditData } from '../lib/bass2Data'
 import { getClaim } from '../lib/claims'
 import type { ViewProps } from '../lib/route'
 import { summarizeStore, useSummarize } from '../lib/summarizeStore'
 import {
-  AUDIT_FILTER_LABELS,
   bayRows,
-  hasFilters,
   linkFromParams,
   matchesFilters,
   o2Domain,
@@ -34,12 +37,12 @@ export function Summarize({ params }: ViewProps) {
       <h1 className="sr-only">Summarize</h1>
       {data.status === 'loading' && <Note className="p-6">Loading NASA’s test table…</Note>}
       {data.status === 'error' && <p className="p-6 text-sm text-red">Couldn’t load the test table: {data.message}</p>}
-      {data.status === 'ready' && <Explorer bass2={data.bass2} params={params} />}
+      {data.status === 'ready' && <Explorer bass2={data.bass2} audit={data.audit} params={params} />}
     </>
   )
 }
 
-function Explorer({ bass2, params }: { bass2: Bass2File; params: ViewProps['params'] }) {
+function Explorer({ bass2, audit, params }: { bass2: Bass2File; audit: AuditFile; params: ViewProps['params'] }) {
   const rows = bass2.rows
   const filters = useSummarize((state) => state.filters)
   const quarantine = useSummarize((state) => state.quarantine)
@@ -93,41 +96,21 @@ function Explorer({ bass2, params }: { bass2: Bass2File; params: ViewProps['para
   return (
     <>
       <div className="flex h-full min-h-[46rem] flex-col">
-        <BriefingBox />
+        <SummaryHeader
+          audit={audit}
+          filters={filters}
+          shown={shown.length}
+          shownBurning={shown.filter((row) => row.burnConfirmed).length}
+        />
         <LayoutGroup>
           {/* A container: tiles shrink below a 1300px stage, and below 1100px (the Lab Partner dock
               open) the bay moves under the wall. */}
           <section aria-label="Test wall and quarantine bay" className="@container/stage flex flex-1 flex-col bg-window">
             <div className="flex flex-1 @max-[1100px]/stage:flex-col">
-              <div className="flex min-w-0 shrink-0 flex-col gap-4 p-6">
-                <div className="flex h-6 items-center gap-4 text-sm whitespace-nowrap">
-                  <h2 className="leading-5 font-semibold">Test wall</h2>
-                  <p className="text-muted">
-                    Showing <AnimatedNumber value={shown.length} className="text-ink" /> of{' '}
-                    <span className="num text-ink">{rows.length}</span> tests,{' '}
-                    <AnimatedNumber value={shown.filter((row) => row.burnConfirmed).length} className="text-ink" /> burn
-                    confirmed by sensors
-                  </p>
-                  {filters.audit && (
-                    <button
-                      type="button"
-                      onClick={() => summarizeStore.setFilters({ audit: null })}
-                      aria-label={`Remove the filter: only ${AUDIT_FILTER_LABELS[filters.audit]}`}
-                      className="flex items-center gap-1.5 rounded-sm border border-cyan px-2 py-0.5 text-xs text-ink hover:bg-cyan/10"
-                    >
-                      Only: {AUDIT_FILTER_LABELS[filters.audit]}
-                      <X aria-hidden="true" className="size-3" />
-                    </button>
-                  )}
-                  {hasFilters(filters) && (
-                    <button
-                      type="button"
-                      onClick={summarizeStore.clearFilters}
-                      className="text-xs text-cyan hover:underline"
-                    >
-                      Clear filters
-                    </button>
-                  )}
+              <div className="flex min-w-0 shrink-0 flex-col gap-3 px-6 py-3">
+                <div className="flex h-6 items-baseline gap-3 whitespace-nowrap">
+                  <h2 className="text-sm leading-5 font-semibold">Test wall</h2>
+                  <p className="text-xs text-muted">Each column in flight order, earliest first.</p>
                 </div>
                 <TestWall
                   columns={wall.columns}
@@ -136,21 +119,27 @@ function Explorer({ bass2, params }: { bass2: Bass2File; params: ViewProps['para
                   domain={wall.domain}
                   bayOrder={wall.bayOrder}
                   onOpen={openRecord}
+                  pocket={
+                    <TestBrief
+                      byId={wall.byId}
+                      defaultId={audit.lowestBurningO2?.testId ?? null}
+                      defaultCaption="Lowest O2 with confirmed burning"
+                    />
+                  }
                 />
                 {/* w-0 min-w-full: the key wraps to the wall's width instead of widening the column. */}
-                <div className="mt-auto flex w-0 min-w-full flex-col gap-3">
-                  <WallReadout byId={wall.byId} />
+                <div className="mt-auto w-0 min-w-full">
                   <WallLegend domain={wall.domain} />
                 </div>
               </div>
               <div
                 aria-hidden="true"
-                className="my-6 w-px shrink-0 bg-line @max-[1100px]/stage:mx-6 @max-[1100px]/stage:my-0 @max-[1100px]/stage:h-px @max-[1100px]/stage:w-auto"
+                className="my-3 w-px shrink-0 bg-line @max-[1100px]/stage:mx-6 @max-[1100px]/stage:my-0 @max-[1100px]/stage:h-px @max-[1100px]/stage:w-auto"
               />
               {/* The wall sets the stage's height; the bay fills it and scrolls inside (absolute, so an
                   open "Show the math" never stretches the stage). Stacked, it takes its own height. */}
               <div className="relative min-w-64 flex-1 @max-[1100px]/stage:static">
-                <div className="absolute inset-0 flex flex-col p-6 @max-[1100px]/stage:static">
+                <div className="absolute inset-0 flex flex-col px-6 py-3 @max-[1100px]/stage:static">
                   <QuarantineBay
                     rows={wall.bay}
                     quarantine={quarantine}
@@ -167,7 +156,7 @@ function Explorer({ bass2, params }: { bass2: Bass2File; params: ViewProps['para
             </div>
           </section>
         </LayoutGroup>
-        <div className="shrink-0 border-t border-line px-6 py-4">
+        <div className="shrink-0 border-t border-line px-6 py-3">
           <FilterStrip filters={filters} pis={wall.pis} domain={wall.domain} />
         </div>
       </div>

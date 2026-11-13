@@ -108,8 +108,8 @@ export function RecordDetails({ row, flow, forensic }: { row: Bass2Row; flow?: C
           {BURN_STATUS_LABELS[burn]}
           {row.dCo2Pct !== null && burn !== 'not-checked' && (
             <span className="text-muted">
-              : CO2 rose <span className="num text-ink">{row.dCo2Pct.toFixed(2)}</span> points;{' '}
-              {burn === 'confirmed' ? 'at least' : 'under'} <span className="num text-ink">{BURN_CO2_RISE_PCT.toFixed(1)}</span>,
+              : CO2 rose <span className="tabular-nums text-ink">{row.dCo2Pct.toFixed(2)}</span> points;{' '}
+              {burn === 'confirmed' ? 'at least' : 'under'} <span className="tabular-nums text-ink">{BURN_CO2_RISE_PCT.toFixed(1)}</span>,
               twice the CO2 sensor’s resolution
               <Cite id="bass2.sensor.co2-res" />
             </span>
@@ -122,7 +122,7 @@ export function RecordDetails({ row, flow, forensic }: { row: Bass2Row; flow?: C
               'not worked out, a CO cell is not a number'
             ) : (
               <>
-                <span className="num text-ink">{Math.round(row.coPerCo2)}</span> ppm
+                <span className="tabular-nums text-ink">{Math.round(row.coPerCo2)}</span> ppm
               </>
             )}
           </p>
@@ -139,8 +139,8 @@ export function RecordDetails({ row, flow, forensic }: { row: Bass2Row; flow?: C
               {flow.quote.trim()}
             </blockquote>
             <figcaption className="flex items-center gap-2 pl-3.5 text-xs text-muted">
-              Appendix A, report p. <span className="num">{flow.reportPage}</span>, PDF p.{' '}
-              <span className="num">{flow.pdfPage}</span>
+              Appendix A, report p. <span className="tabular-nums">{flow.reportPage}</span>, PDF p.{' '}
+              <span className="tabular-nums">{flow.pdfPage}</span>
               <span className="flex items-center gap-1 text-emerald">
                 <CircleCheck aria-hidden="true" className="size-3.5" />
                 Quote checked
@@ -207,7 +207,7 @@ export function RecordDetails({ row, flow, forensic }: { row: Bass2Row; flow?: C
 
       <Section title="Sources">
         <p className="text-sm leading-6">
-          {dataset?.title}, {dataset?.publisher}, row <span className="num">{row.rowIndex}</span>
+          {dataset?.title}, {dataset?.publisher}, row <span className="tabular-nums">{row.rowIndex}</span>
         </p>
         <p className="text-sm leading-6">
           BASS-II report, Appendix A, which lists calibrated and uncalibrated O2 and observations for every test

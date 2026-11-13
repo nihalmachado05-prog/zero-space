@@ -100,7 +100,9 @@ src/
 - Three type voices, never swapped:
   - Archivo is our interface words: headings, labels, buttons, our own sentences, and citations.
   - Source Serif 4 (`font-serif`) is NASA's own words: every quote taken from a source, verbatim, and nothing else.
-  - JetBrains Mono with `tabular-nums` (the `num` utility) is numbers only: data values, slider values, axis ticks, table cells and timestamps. Mono is never used for labels or citations.
+  - JetBrains Mono with `tabular-nums` (the `num` utility) is for numbers that stand alone: data readouts, slider values, axis ticks, table cells, timestamps and the "Show the math" sum. Mono is never used for labels or citations.
+  - A number inside a sentence or a chip is Archivo with `tabular-nums`, never Mono: Mono's wide period makes "13.6%" read "13 . 6%".
+  - Test ids (O4, P22b) are Archivo semibold with `tabular-nums` (the `test-id` utility) everywhere, so O4 never reads as "04".
 - Citations are scientific footnotes. `<Cite>` is a small cyan superscript number, ¹ ² ³ in order of appearance on the current view (a claim cited twice keeps its number), with no brackets and no mono. Hover or keyboard focus shows a one-line preview (source short name plus page or line); a click opens the drawer.
 - Square or near-square corners (`rounded-none` or `rounded-sm`), 1px borders, small `+` corner ticks on instrument panels. No gradients or emoji in the interface chrome. Only the flame illustrations may use blur and glow.
 - **Every view has one signature motion** (listed in SPEC §5). Make it excellent and keep everything else still.

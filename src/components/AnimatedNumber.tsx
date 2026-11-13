@@ -7,7 +7,7 @@ type AnimatedNumberProps = {
   className?: string
 }
 
-/** Summary numbers glide to a new value in 200 ms (written through a ref, in tabular mono). */
+/** Summary numbers glide to a new value in 200 ms (written through a ref). Archivo tabular-nums, for sentences. */
 export function AnimatedNumber({ value, decimals = 0, className = '' }: AnimatedNumberProps) {
   const ref = useRef<HTMLSpanElement>(null)
   const shown = useRef(value)
@@ -32,7 +32,7 @@ export function AnimatedNumber({ value, decimals = 0, className = '' }: Animated
   }, [value, decimals, reduceMotion])
 
   return (
-    <span ref={ref} className={`num ${className}`}>
+    <span ref={ref} className={`tabular-nums ${className}`}>
       {first.toFixed(decimals)}
     </span>
   )

@@ -1,6 +1,6 @@
 {
  "generatedBy": "pipeline/scripts/compile-bass2.ts",
- "generatedAt": "2026-11-13T12:52:25.985Z",
+ "generatedAt": "2026-11-13T13:51:33.012Z",
  "counts": {
   "total": 129,
   "o2Usable": 122,
@@ -106,5 +106,9 @@
  },
  "model": null,
  "promptVersion": null,
- "source": "pipeline/sources/PSI-25/PSI-25_Experimental table_BASS-II.csv"
+ "source": "pipeline/sources/PSI-25/PSI-25_Experimental table_BASS-II.csv",
+ "lowestBurningO2": {
+  "value": 13.6,
+  "testId": "O4"
+ }
 }

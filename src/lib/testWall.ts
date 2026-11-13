@@ -129,10 +129,11 @@ export function o2Domain(rows: readonly Bass2Row[]): { min: number; max: number 
 }
 
 /**
- * How much cyan is mixed into black (in OKLab) for a tile: from 22% at the lowest initial O2 to
- * 66% at the highest. Above 66% the ink-colored test id would drop under 4.5:1 contrast.
+ * How much cyan is mixed into black (in OKLab) for a tile: from 40% at the lowest initial O2, so
+ * the 13.6% tiles stay clearly visible on the black stage, to 66% at the highest. Above 66% the
+ * ink-colored test id would drop under 4.5:1 contrast.
  */
-export const FILL_MIX_PCT = { min: 22, max: 66 }
+export const FILL_MIX_PCT = { min: 40, max: 66 }
 
 export function o2FillMixPct(o2: number | null, domain: { min: number; max: number }): number | null {
   if (o2 === null) return null

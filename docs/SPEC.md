@@ -696,6 +696,26 @@ export interface AuditSummary {
   testIds: Partial<Record<Flag, string[]>>
 }
 
+// Generated files (npm run data:bass2). No LLM is involved, so model and promptVersion are null
+// (CLAUDE.md rule 11); source is the CSV's path under pipeline/sources/.
+export interface FlowEvidence {             // one entry of docs/fixtures/flow-by-test.json
+  flow: 'Opposed' | 'Concurrent' | 'Stagnation' | null
+  quote: string | null                      // the Appendix A row text; null if the test isn't in the appendix
+  pdfPage: number | null; reportPage: number | null; note?: string
+}
+export interface CheckedFlowEvidence extends FlowEvidence {
+  quoteChecked: boolean                     // quote found on its pdfPage after normalize(); unchecked quotes are hidden
+}
+export interface Bass2File {                // public/data/bass2.json
+  generatedBy: string; generatedAt: string; model: null; promptVersion: null; source: string
+  rows: Bass2Row[]
+  flowEvidence: Record<string, CheckedFlowEvidence>   // keyed by testId
+}
+export interface AuditFile extends AuditSummary {      // public/data/audit.json
+  model: null; promptVersion: null; source: string
+  lowestBurningO2: { value: number; testId: string } | null   // lowest final O2 among burn-confirmed tests (O4, 13.6)
+}
+
 export interface Measured { value: number; unit: string; n: number; claimIds: string[] }
 export interface RiskEntity {
   id: string; label: string; tests: number

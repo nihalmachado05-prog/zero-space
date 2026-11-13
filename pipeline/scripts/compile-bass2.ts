@@ -18,6 +18,7 @@ import { extractText, getDocumentProxy } from 'unpdf'
 import {
   auditGroups,
   compileBass2,
+  lowestFinalO2,
   summarizeAudit,
   type AuditFile,
   type Bass2File,
@@ -59,7 +60,8 @@ const meta = { generatedBy: GENERATED_BY, generatedAt, model: null, promptVersio
 
 const bass2: Bass2File = { ...meta, rows, flowEvidence }
 const summary = summarizeAudit(rows, { generatedBy: GENERATED_BY, generatedAt })
-const audit: AuditFile = { ...summary, model: null, promptVersion: null, source }
+const lowestBurningO2 = lowestFinalO2(rows.filter((row) => row.burnConfirmed))
+const audit: AuditFile = { ...summary, model: null, promptVersion: null, source, lowestBurningO2 }
 
 writeFileSync(join(OUT_DIR, 'bass2.json'), `${JSON.stringify(bass2, null, 1)}\n`)
 writeFileSync(join(OUT_DIR, 'audit.json'), `${JSON.stringify(audit, null, 1)}\n`)

@@ -42,8 +42,8 @@ export function ShowTheMath({ forensic, id }: ShowTheMathProps) {
       </div>
 
       <p className="text-xs leading-5 text-muted">
-        Offset = calibrated initial <span className="num text-ink">{fmt(forensic.calibratedInitial)}</span> −
-        uncalibrated initial <span className="num text-ink">{fmt(forensic.uncalibratedInitial ?? 0)}</span>
+        Offset = calibrated initial <span className="tabular-nums text-ink">{fmt(forensic.calibratedInitial)}</span> −
+        uncalibrated initial <span className="tabular-nums text-ink">{fmt(forensic.uncalibratedInitial ?? 0)}</span>
         {blankInitial && ', blank, read as 0'}. NASA calibrated each reading by that day’s offset
         <Cite id="bass2.sensor.mca-offset" />
       </p>
@@ -54,7 +54,7 @@ export function ShowTheMath({ forensic, id }: ShowTheMathProps) {
             {claim.quote}
           </blockquote>
           <figcaption className="pl-3.5 text-xs leading-5 text-muted">
-            NASA’s Appendix A row for {forensic.testId}: calibrated initial, calibrated final, then the
+            NASA’s Appendix A row for <span className="test-id">{forensic.testId}</span>: calibrated initial, calibrated final, then the
             uncalibrated initial and final. Dashes are a blank reading.
             <Cite id={forensic.claimId} />
           </figcaption>

@@ -25,11 +25,11 @@ type QuarantineBayProps = {
 function ReasonChip({ row }: { row: Bass2Row }) {
   const impossible = row.flags.includes('o2-impossible')
   return (
-    <span className="flex items-center gap-2 rounded-sm border border-red/40 px-2 py-1 text-xs leading-4 whitespace-nowrap text-ink">
+    <span className="flex items-center gap-2 text-xs leading-4 whitespace-nowrap text-ink">
       <StatusGlyph severity="quarantined" />
       {impossible ? (
         <span>
-          Final O2 <span className="num">{row.raw[COLUMNS.o2Final].trim()}%</span>: impossible
+          Final O2 <span className="tabular-nums">{row.raw[COLUMNS.o2Final].trim()}%</span>: impossible
         </span>
       ) : (
         'Final O2 not recorded'
@@ -58,7 +58,7 @@ export function QuarantineBay(props: QuarantineBayProps) {
         <Switch label="Quarantine" checked={quarantine} onChange={onQuarantine} />
       </div>
       <p className="max-w-md text-xs leading-5 text-muted">
-        Spreadsheet anomalies we flagged: <span className="num text-ink">{rows.length}</span> tests whose final O2
+        Spreadsheet anomalies we flagged: <span className="tabular-nums text-ink">{rows.length}</span> tests whose final O2
         is missing or physically impossible. Every statistic leaves them out, with the toggle on or off.
       </p>
 

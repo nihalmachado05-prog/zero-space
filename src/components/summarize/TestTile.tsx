@@ -60,7 +60,7 @@ export function TestTile({
       onPointerEnter={onPointerEnter}
       onKeyDown={onKeyDown}
       style={{ backgroundColor: fill, boxShadow: severity === 'quarantined' ? QUARANTINE_GLOW : 'none' }}
-      className={`num relative grid size-9 shrink-0 @min-[1300px]/stage:size-10 cursor-pointer place-items-center text-xs leading-none text-ink transition-opacity duration-200 after:pointer-events-none after:absolute after:inset-0 after:border after:border-transparent hover:after:border-ink/70 ${
+      className={`test-id relative grid size-9 shrink-0 @min-[1300px]/stage:size-10 cursor-pointer place-items-center text-xs leading-none text-ink transition-opacity duration-200 after:pointer-events-none after:absolute after:inset-0 after:border after:border-transparent hover:after:border-ink/70 ${
         dimmed ? 'opacity-[0.18]' : 'opacity-100'
       } ${severity === 'quarantined' ? 'z-10' : ''}`}
     >

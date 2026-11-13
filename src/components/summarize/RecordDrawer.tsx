@@ -79,11 +79,11 @@ export function RecordDrawer({ row, total, flow, forensic, onClose }: RecordDraw
             <div className="flex items-start justify-between gap-4">
               <div className="flex flex-col gap-1">
                 <h2 id={headingId} ref={headingRef} tabIndex={-1} className="text-base leading-6 font-semibold">
-                  Test <span className="num">{row.testId}</span>
+                  Test <span className="test-id">{row.testId}</span>
                 </h2>
                 <p className="text-sm text-muted">
-                  {row.pi}, <span className="num">{row.date}</span>, CSV row{' '}
-                  <span className="num">{row.rowIndex}</span> of <span className="num">{total}</span>
+                  {row.pi}, <span className="tabular-nums">{row.date}</span>, CSV row{' '}
+                  <span className="tabular-nums">{row.rowIndex}</span> of <span className="tabular-nums">{total}</span>
                 </p>
               </div>
               <button

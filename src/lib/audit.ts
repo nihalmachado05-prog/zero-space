@@ -185,6 +185,8 @@ export interface AuditFile extends AuditSummary {
   model: null
   promptVersion: null
   source: string
+  /** The lowest final O2 among burn-confirmed tests, for the SUMMARIZE headline. */
+  lowestBurningO2: { value: number; testId: string } | null
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -506,6 +508,19 @@ export const BURN_STATUS_LABELS: Record<BurnStatus, string> = {
   'not-checked': 'Burn not checked: a reading is unusable',
 }
 
+/**
+ * The numbers in the SUMMARIZE headline, from audit.json alone: how many rows are set aside, how
+ * many tests show sensor-confirmed burning, and the lowest O2 a confirmed flame burned down to.
+ */
+export function auditHeadline(audit: Pick<AuditFile, 'counts' | 'testIds' | 'lowestBurningO2'>) {
+  return {
+    quarantined: auditGroups(audit.testIds).quarantined.length,
+    total: audit.counts.total,
+    burnConfirmed: audit.counts.burnConfirmed,
+    lowestBurning: audit.lowestBurningO2,
+  }
+}
+
 export function isQuarantined(row: Pick<Bass2Row, 'flags'>): boolean {
   return severityOf(row.flags) === 'quarantined'
 }
@@ -623,6 +638,8 @@ export function o2Forensic(row: Bass2Row, appendixQuote: string): O2Forensic {
 
 export interface CoYieldStat {
   median: number | null
+  /** NASA says "on average" without saying which tests, so both are shown. */
+  mean: number | null
   min: number | null
   max: number | null
   n: number
@@ -635,6 +652,7 @@ export function coYieldStat(rows: readonly Bass2Row[], include: (row: Bass2Row) 
   const values = used.map((row) => row.coPerCo2 as number)
   return {
     median: median(values),
+    mean: values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null,
     min: values.length ? Math.min(...values) : null,
     max: values.length ? Math.max(...values) : null,
     n: values.length,
@@ -660,6 +678,8 @@ export function nasaChecks(rows: readonly Bass2Row[]) {
       rows,
       (row) => family(row) === 'rod' && (row.flowConfig === 'Concurrent' || row.flowConfig === 'Stagnation'),
     ),
+    concurrentRods: coYieldStat(rows, (row) => family(row) === 'rod' && row.flowConfig === 'Concurrent'),
+    stagnationRods: coYieldStat(rows, (row) => family(row) === 'rod' && row.flowConfig === 'Stagnation'),
     opposedRods: coYieldStat(rows, (row) => family(row) === 'rod' && row.flowConfig === 'Opposed'),
     lowestBurning: lowestFinalO2(rows.filter((row) => row.burnConfirmed)),
     lowestUsable: lowestFinalO2(rows.filter((row) => row.o2Usable)),
