@@ -1,9 +1,10 @@
-import { LayoutGroup } from 'motion/react'
+import { LayoutGroup, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo } from 'react'
 import { Note } from '../components/Note'
 import { CheckedAgainstNasa } from '../components/summarize/CheckedAgainstNasa'
 import { DistributionStrip } from '../components/summarize/DistributionStrip'
 import { FilterStrip } from '../components/summarize/FilterStrip'
+import { landedAt } from '../components/summarize/flight'
 import { QuarantineBay } from '../components/summarize/QuarantineBay'
 import { RecordDrawer } from '../components/summarize/RecordDrawer'
 import { SummaryHeader } from '../components/summarize/SummaryHeader'
@@ -22,6 +23,7 @@ import { getClaim } from '../lib/claims'
 import type { ViewProps } from '../lib/route'
 import { summarizeStore, useSummarize } from '../lib/summarizeStore'
 import {
+  bayGroups,
   bayRows,
   linkFromParams,
   matchesFilters,
@@ -59,10 +61,16 @@ function Explorer({ bass2, audit, params }: { bass2: Bass2File; audit: AuditFile
         forensics.set(row.testId, o2Forensic(row, claim.quote))
       }
     }
+    // The bay, grouped by cause; tiles fly in group by group, so the first group lands first.
+    const groups = bayGroups(columns, (testId) => forensics.get(testId))
+    const flightOrder = groups.flatMap((group) => group.rows)
     return {
       columns,
-      bay,
-      bayOrder: new Map(bay.map((row, order) => [row.testId, order])),
+      groups,
+      bayOrder: new Map(flightOrder.map((row, order) => [row.testId, order])),
+      /** The first test with forensics: its math opens by itself once the tiles land. */
+      firstMathId: flightOrder.find((row) => forensics.has(row.testId))?.testId ?? null,
+      lastFlight: Math.max(0, flightOrder.length - 1),
       byId: new Map(rows.map((row) => [row.testId, row])),
       domain: o2Domain(rows),
       forensics,
@@ -83,6 +91,21 @@ function Explorer({ bass2, audit, params }: { bass2: Bass2File; audit: AuditFile
       return row ? isQuarantined(row) : undefined
     })
   }, [paramKey, wall])
+
+  // When quarantine turns on (or the view opens with it on), open the first forensic line once
+  // the last tile has landed; at once under reduced motion. Not if a deep link already chose one,
+  // and not again after someone hides it.
+  const reduceMotion = useReducedMotion() ?? false
+  useEffect(() => {
+    const first = wall.firstMathId
+    if (!quarantine || first === null || summarizeStore.get().mathId !== null) return
+    const delayMs = reduceMotion ? 0 : landedAt(wall.lastFlight) * 1000
+    const timer = window.setTimeout(() => {
+      const state = summarizeStore.get()
+      if (state.quarantine && state.mathId === null) summarizeStore.openMath(first)
+    }, delayMs)
+    return () => window.clearTimeout(timer)
+  }, [quarantine, wall, reduceMotion])
 
   const openRecord = useCallback((testId: string) => summarizeStore.openRecord(testId), [])
   const closeRecord = useCallback(() => {
@@ -141,7 +164,8 @@ function Explorer({ bass2, audit, params }: { bass2: Bass2File; audit: AuditFile
               <div className="relative min-w-64 flex-1 @max-[1100px]/stage:static">
                 <div className="absolute inset-0 flex flex-col px-6 py-3 @max-[1100px]/stage:static">
                   <QuarantineBay
-                    rows={wall.bay}
+                    groups={wall.groups}
+                    order={wall.bayOrder}
                     quarantine={quarantine}
                     onQuarantine={summarizeStore.setQuarantine}
                     matched={matched}

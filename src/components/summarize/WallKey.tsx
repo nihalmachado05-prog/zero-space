@@ -12,6 +12,7 @@ import {
   type Severity,
 } from '../../lib/audit'
 import { citePreview, getClaim, testNoteClaimIds } from '../../lib/claims'
+import { OUTCOME_LABELS, useTestOutcomes } from '../../lib/generatedData'
 import { o2FillColor } from '../../lib/testWall'
 import { useCitation } from '../citationContext'
 import { FlowGlyph, StatusGlyph } from './glyphs'
@@ -27,6 +28,7 @@ const STATUSES: { severity: Severity; label: string }[] = [
 
 /** The key under the wall: the initial-O2 scale in steps (the same colors as the tiles), then the corner marks. */
 export function WallLegend({ domain }: { domain: { min: number; max: number } }) {
+  const outcomes = useTestOutcomes()
   const steps = Array.from({ length: SWATCHES }, (_, i) => domain.min + ((domain.max - domain.min) * i) / (SWATCHES - 1))
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs leading-4 text-muted">
@@ -56,6 +58,7 @@ export function WallLegend({ domain }: { domain: { min: number; max: number } })
           </span>
         ))}
       </span>
+      {outcomes && <span>Outcomes: AI-read from NASA’s notes, quote checked</span>}
     </div>
   )
 }
@@ -93,10 +96,12 @@ type TestBriefProps = {
 export function TestBrief({ byId, defaultId, defaultCaption }: TestBriefProps) {
   const hovered = useWallHover()
   const { openCitation } = useCitation()
+  const outcomes = useTestOutcomes()
   const row = (hovered ? byId.get(hovered) : undefined) ?? (defaultId ? byId.get(defaultId) : undefined)
   if (!row) return <div className="h-[8.25rem]" />
 
   const isDefault = !hovered || !byId.has(hovered)
+  const outcome = outcomes?.outcomes.find((o) => o.testId === row.testId)
   const flags = row.flags.filter((flag) => !flag.startsWith('note-'))
   const noteId = testNoteClaimIds(row.testId)[0]
   const note = noteId ? getClaim(noteId) : undefined
@@ -132,7 +137,11 @@ export function TestBrief({ byId, defaultId, defaultCaption }: TestBriefProps) {
           {row.flowConfig ?? 'Flow not stated'}
         </span>
         <span className="truncate text-muted">{BURN_STATUS_LABELS[burnStatus(row)]}</span>
-        <span className="text-muted">Outcome: Not generated yet</span>
+        {outcome && (
+          <span className="truncate">
+            Outcome: {OUTCOME_LABELS[outcome.outcome]} <span className="text-muted">(AI-read, quote checked)</span>
+          </span>
+        )}
       </p>
       <p className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
         {flags.length === 0 ? (

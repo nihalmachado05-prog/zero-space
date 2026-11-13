@@ -716,6 +716,18 @@ export interface AuditFile extends AuditSummary {      // public/data/audit.json
   lowestBurningO2: { value: number; testId: string } | null   // lowest final O2 among burn-confirmed tests (O4, 13.6)
 }
 
+// AI pipeline outputs (M7). Until a file exists, everything that shows it renders nothing:
+// vite.config.ts records which ones exist at build time, so the app never requests a missing file.
+export interface BriefingFile {             // public/data/briefing.json (F2 AI dataset briefing)
+  generatedBy: string; generatedAt: string; model: string; promptVersion: string
+  sentences: string[]                       // 4–6 sentences; every number must be in the stats JSON
+}
+export type Outcome = 'sustained' | 'brief' | 'no-ignition' | 'not-stated'
+export interface TestOutcomesFile {         // public/data/test-outcomes.json (F2b outcome reader)
+  generatedBy: string; generatedAt: string; model: string; promptVersion: string
+  outcomes: Array<{ testId: string; outcome: Outcome; quote: string | null }>   // quote checked on its page (§7.2)
+}
+
 export interface Measured { value: number; unit: string; n: number; claimIds: string[] }
 export interface RiskEntity {
   id: string; label: string; tests: number

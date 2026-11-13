@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import flowByTestJson from '../../docs/fixtures/flow-by-test.json'
 import csvText from '../../pipeline/sources/PSI-25/PSI-25_Experimental table_BASS-II.csv?raw'
-import { compileBass2, type FlowByTest } from './audit'
+import { compileBass2, forensicClaimId, o2Forensic, type FlowByTest } from './audit'
+import { getClaim } from './claims'
 import {
+  bayGroups,
   bayRows,
   FILL_MIX_PCT,
   linkFromParams,
@@ -41,9 +43,26 @@ describe('wallColumns', () => {
     expect(columns[5].rows.slice(-2).map((r) => r.testId)).toEqual(['T9', 'T18'])
   })
 
-  it('puts the 7 quarantined tests in the bay, in wall order', () => {
-    // B2 ran 2/19/2014 and B14 7/2/2014, so B2 comes first.
-    expect(bayRows(columns).map((r) => r.testId)).toEqual(['B2', 'B14', 'F3', 'P22a', 'P22b', 'T28a', 'T28b'])
+  it('groups the 7 quarantined tests in the bay by cause, from their forensics', () => {
+    const forensics = new Map(
+      rows.flatMap((r) => {
+        const quote = getClaim(forensicClaimId(r.testId))?.quote
+        return quote ? [[r.testId, o2Forensic(r, quote)] as const] : []
+      }),
+    )
+    const groups = bayGroups(columns, (testId) => forensics.get(testId))
+    expect(groups.map((g) => [g.label, g.rows.map((r) => r.testId)])).toEqual([
+      ['Blank uncalibrated initial: the offset became the whole reading', ['P22b', 'T28b']],
+      ['Blank uncalibrated final: the reading is just the offset', ['B2', 'P22a', 'T28a']],
+      ['No final O2 recorded', ['B14', 'F3']],
+    ])
+    // Every quarantined test is in exactly one group, and P22b comes first.
+    expect(groups.flatMap((g) => g.rows).map((r) => r.testId).sort()).toEqual(bayRows(columns).map((r) => r.testId).sort())
+  })
+
+  it('puts an impossible value with no Appendix A row in its own group', () => {
+    const groups = bayGroups(columns, () => undefined)
+    expect(groups.map((g) => g.cause)).toEqual(['no-final-o2', 'impossible'])
   })
 })
 

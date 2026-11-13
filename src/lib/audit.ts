@@ -509,14 +509,17 @@ export const BURN_STATUS_LABELS: Record<BurnStatus, string> = {
 }
 
 /**
- * The numbers in the SUMMARIZE headline, from audit.json alone: how many rows are set aside, how
- * many tests show sensor-confirmed burning, and the lowest O2 a confirmed flame burned down to.
+ * The numbers in the SUMMARIZE headline, from audit.json alone: how many rows are set aside and
+ * why (impossible O2, or none), and the lowest O2 a confirmed flame burned down to.
  */
-export function auditHeadline(audit: Pick<AuditFile, 'counts' | 'testIds' | 'lowestBurningO2'>) {
+export function auditHeadline(audit: Pick<AuditFile, 'counts' | 'lowestBurningO2'>) {
+  const o2Impossible = audit.counts['o2-impossible']
+  const o2Missing = audit.counts['o2-missing']
   return {
-    quarantined: auditGroups(audit.testIds).quarantined.length,
+    setAside: o2Impossible + o2Missing,
+    o2Impossible,
+    o2Missing,
     total: audit.counts.total,
-    burnConfirmed: audit.counts.burnConfirmed,
     lowestBurning: audit.lowestBurningO2,
   }
 }
@@ -591,8 +594,17 @@ export function parseAppendixO2(quote: string): AppendixO2 {
   return { calibratedInitial, calibratedFinal, uncalibratedInitial, uncalibratedFinal }
 }
 
+/** The four O2 cells exactly as Appendix A prints them, dashes and all: "20.0 39.1 ---- 19.1". */
+export function appendixO2Cells(quote: string): [string, string, string, string] {
+  const cells = quote.trim().split(/\s+/)
+  if (cells.length !== 4) throw new Error(`Expected four O2 columns in "${quote}"`)
+  return [cells[0], cells[1], cells[2], cells[3]]
+}
+
 export interface O2Forensic extends AppendixO2 {
   testId: string
+  /** The four cells as NASA printed them: calibrated initial, calibrated final, uncalibrated initial, uncalibrated final. */
+  printed: [string, string, string, string]
   offset: number
   /** (uncalibrated final, blank read as 0) + offset */
   reproduced: number
@@ -623,6 +635,7 @@ export function o2Forensic(row: Bass2Row, appendixQuote: string): O2Forensic {
   return {
     testId: row.testId,
     ...appendix,
+    printed: appendixO2Cells(appendixQuote),
     offset,
     reproduced,
     matches: row.o2FinalPct !== null && reproduced === roundTo(row.o2FinalPct, 2),
@@ -631,6 +644,36 @@ export function o2Forensic(row: Bass2Row, appendixQuote: string): O2Forensic {
     blank,
     claimId: forensicClaimId(row.testId),
   }
+}
+
+/** Why a test is quarantined, worked out from its flags and its O2 forensics. */
+export type QuarantineCause = 'blank-uncalibrated-initial' | 'blank-uncalibrated-final' | 'no-final-o2' | 'impossible'
+
+/** The bay's groups, in order. */
+export const QUARANTINE_CAUSES: readonly QuarantineCause[] = [
+  'blank-uncalibrated-initial',
+  'blank-uncalibrated-final',
+  'no-final-o2',
+  'impossible',
+]
+
+export const QUARANTINE_CAUSE_LABELS: Record<QuarantineCause, string> = {
+  'blank-uncalibrated-initial': 'Blank uncalibrated initial: the offset became the whole reading',
+  'blank-uncalibrated-final': 'Blank uncalibrated final: the reading is just the offset',
+  'no-final-o2': 'No final O2 recorded',
+  impossible: 'Impossible final O2, not explained by a blank reading',
+}
+
+/**
+ * The cause of a quarantined test, or null for one that isn't quarantined. A blank-reading cause
+ * needs forensics that reproduce the CSV's value; anything else impossible stays "impossible".
+ */
+export function quarantineCause(row: Bass2Row, forensic: O2Forensic | undefined): QuarantineCause | null {
+  if (!isQuarantined(row)) return null
+  if (row.flags.includes('o2-missing')) return 'no-final-o2'
+  if (forensic?.matches && forensic.blank === 'uncalibrated-initial') return 'blank-uncalibrated-initial'
+  if (forensic?.matches && forensic.blank === 'uncalibrated-final') return 'blank-uncalibrated-final'
+  return 'impossible'
 }
 
 // ---------------------------------------------------------------------------------------------

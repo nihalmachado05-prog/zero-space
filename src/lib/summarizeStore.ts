@@ -35,6 +35,7 @@ export const summarizeStore = {
   openRecord: (recordId: string) => commit({ recordId }),
   closeRecord: () => commit({ recordId: null }),
   toggleMath: (testId: string) => commit({ mathId: state.mathId === testId ? null : testId }),
+  openMath: (testId: string) => commit({ mathId: testId }),
   /**
    * Applies a deep link. `isQuarantined` says where a linked test goes: the bay, with its math
    * open, or the record drawer.

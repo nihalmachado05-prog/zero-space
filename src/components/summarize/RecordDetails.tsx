@@ -18,6 +18,7 @@ import {
   type Severity,
 } from '../../lib/audit'
 import { getClaim, getSource, sourceLink, testNoteClaimIds } from '../../lib/claims'
+import { OUTCOME_LABELS, useTestOutcomes } from '../../lib/generatedData'
 import { Cite } from '../Cite'
 import { StatusGlyph } from './glyphs'
 import { ShowTheMath } from './ShowTheMath'
@@ -84,6 +85,7 @@ export function RecordDetails({ row, flow, forensic }: { row: Bass2Row; flow?: C
   const dataset = getSource('psi-25')
   const datasetLink = dataset ? sourceLink(dataset) : null
   const tableClaim = APPENDIX_TABLE_CLAIM[row.pi]
+  const outcome = useTestOutcomes()?.outcomes.find((o) => o.testId === row.testId)
 
   return (
     <div className="flex flex-col gap-6">
@@ -127,7 +129,13 @@ export function RecordDetails({ row, flow, forensic }: { row: Bass2Row; flow?: C
             )}
           </p>
         )}
-        <p className="text-sm leading-6 text-muted">Outcome, AI-read from NASA’s notes: Not generated yet</p>
+        {outcome && (
+          <p className="text-sm leading-6">
+            Outcome: {OUTCOME_LABELS[outcome.outcome]}{' '}
+            <span className="text-muted">(AI-read from NASA’s notes, quote checked)</span>
+            {outcome.quote && <span className="block font-serif text-base">“{outcome.quote}”</span>}
+          </p>
+        )}
       </Section>
 
       <Section title="Flow direction">

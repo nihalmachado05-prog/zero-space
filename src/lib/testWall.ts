@@ -5,16 +5,21 @@ import {
   burnStatus,
   FLOW_CONFIGS,
   isQuarantined,
-  SEVERITY_LABELS,
-  severityOf,
   primaryGroup,
+  QUARANTINE_CAUSE_LABELS,
+  QUARANTINE_CAUSES,
+  quarantineCause,
   rowInGroup,
   sampleFamily,
   SAMPLE_FAMILY_LABELS,
   SAMPLE_TYPE_LABELS,
+  SEVERITY_LABELS,
+  severityOf,
   type AuditGroup,
   type Bass2Row,
   type FlowConfig,
+  type O2Forensic,
+  type QuarantineCause,
   type SampleFamily,
   type SampleType,
 } from './audit'
@@ -240,7 +245,29 @@ export function tileLabel(row: Bass2Row): string {
   ].join(', ')
 }
 
-/** The order quarantined tests sit in the bay: the wall's reading order. */
+/** The quarantined tests in the wall's reading order. */
 export function bayRows(columns: readonly WallColumn[]): Bass2Row[] {
   return columns.flatMap((column) => column.rows).filter((row) => isQuarantined(row))
+}
+
+export interface BayGroup {
+  cause: QuarantineCause
+  label: string
+  rows: Bass2Row[]
+}
+
+/**
+ * The quarantine bay, grouped by cause (lib/audit.ts quarantineCause), in QUARANTINE_CAUSES order;
+ * within a group, the wall's reading order. Empty groups are left out.
+ */
+export function bayGroups(
+  columns: readonly WallColumn[],
+  forensicOf: (testId: string) => O2Forensic | undefined,
+): BayGroup[] {
+  const rows = bayRows(columns)
+  return QUARANTINE_CAUSES.map((cause) => ({
+    cause,
+    label: QUARANTINE_CAUSE_LABELS[cause],
+    rows: rows.filter((row) => quarantineCause(row, forensicOf(row.testId)) === cause),
+  })).filter((group) => group.rows.length > 0)
 }

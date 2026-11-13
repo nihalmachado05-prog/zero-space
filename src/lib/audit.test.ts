@@ -239,6 +239,13 @@ describe('o2-forensics.json', () => {
     })
   }
 
+  it('keeps the four cells exactly as Appendix A prints them', () => {
+    const printed = (id: string) => o2Forensic(row(id), getClaim(forensicClaimId(id))?.quote ?? '').printed
+    expect(printed('P22b')).toEqual(['20.0', '39.1', '----', '19.1'])
+    expect(printed('T28b')).toEqual(['20.7', '40.4', '------', '19.7'])
+    expect(printed('B2')).toEqual(['22.2', '1.6', '20.6', '-----'])
+  })
+
   it('reads Appendix A dashes as blank', () => {
     expect(parseAppendixO2('20.0 39.1 ---- 19.1')).toEqual({
       calibratedInitial: 20,
@@ -366,13 +373,16 @@ describe('CO per CO2, mean and median, from per-test-expected.json', () => {
 })
 
 describe('the SUMMARIZE headline, from audit.json alone', () => {
-  it('7 of 129 set aside, 65 burning, lowest 13.6% (O4)', () => {
+  it('7 of 129 set aside (5 impossible, 2 none), lowest confirmed burning 13.6% (O4)', () => {
     expect(auditHeadline(auditFile)).toEqual({
-      quarantined: 7,
+      setAside: 7,
+      o2Impossible: 5,
+      o2Missing: 2,
       total: 129,
-      burnConfirmed: 65,
       lowestBurning: { value: 13.6, testId: 'O4' },
     })
+    // The set-aside rows are exactly the quarantine bay.
+    expect(auditHeadline(auditFile).setAside).toBe(auditGroups(auditFile.testIds).quarantined.length)
   })
 })
 
