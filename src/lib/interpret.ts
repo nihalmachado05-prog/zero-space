@@ -60,9 +60,9 @@ export const SMALL_CABIN_M3 = 3
 
 /**
  * The N2 preset (SPEC F4): the 6.35 mm rod at 2 cm/s, a small 5 W fire, room air in the MSG
- * (20.9 %, the CSA-CP's reading at the start of NASA's dilution calibration, BASS-II p. 116; no
- * quote yet) and the calibration's N2 flow. 4 h is long enough to see the flame go out. The fire
- * size is our choice.
+ * (20.9 %, the CSA-CP's reading at the start of NASA's dilution calibration; quoted:
+ * bass2.cstr.c0, p. 116) and the calibration's N2 flow. 4 h is long enough to see the flame go out.
+ * The fire size is our choice.
  */
 export const N2_PRESET = { o2InitPct: 20.9, powerW: 5, rodMm: 6.35 as RodMm, flowCmS: 2, durationMin: 240 }
 

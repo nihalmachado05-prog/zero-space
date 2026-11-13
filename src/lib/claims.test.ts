@@ -13,7 +13,7 @@ import {
   US_LAB_VOLUME_M3,
 } from './cabin'
 import { CLAIMS, citePreview, getClaim, SOURCES, sourceLink, splitEmphasis } from './claims'
-import { LUNAR_ATMOSPHERE, M5_TEST } from './interpret'
+import { LUNAR_ATMOSPHERE, M5_TEST, N2_PRESET } from './interpret'
 import { normalize } from './normalize'
 import { ALPHA_PMMA_CM2_S, EARTH_LIMIT_O2_PCT, R0_CM } from './physics'
 import { TEST1_IGNITION_S } from './risk'
@@ -26,11 +26,11 @@ const claim = (id: string) => {
 const quoteOf = (id: string) => normalize(claim(id).quote ?? '')
 
 describe('claims.json', () => {
-  it('holds the 81 report claims, the 36 PSI claims, the Zayac poster claim and the 12 computed claims, each id once', () => {
-    expect(CLAIMS).toHaveLength(130)
-    expect(new Set(CLAIMS.map((c) => c.id)).size).toBe(130)
-    expect(CLAIMS.filter((c) => c.sourceId === 'nasa-tm-20210011385')).toHaveLength(81)
-    expect(CLAIMS.filter((c) => typeof c.locator?.pdfPage === 'number')).toHaveLength(82)
+  it('holds the 82 report claims, the 36 PSI claims, the Zayac poster claim and the 12 computed claims, each id once', () => {
+    expect(CLAIMS).toHaveLength(131)
+    expect(new Set(CLAIMS.map((c) => c.id)).size).toBe(131)
+    expect(CLAIMS.filter((c) => c.sourceId === 'nasa-tm-20210011385')).toHaveLength(82)
+    expect(CLAIMS.filter((c) => typeof c.locator?.pdfPage === 'number')).toHaveLength(83)
     expect(CLAIMS.filter((c) => typeof c.locator?.file === 'string')).toHaveLength(36)
     expect(CLAIMS.filter((c) => c.kind === 'computed')).toHaveLength(12)
   })
@@ -179,5 +179,7 @@ describe('model constants match their quotes', () => {
     expect(quoteOf('zayac.atmospheres')).toContain(
       `${LUNAR_ATMOSPHERE.o2Pct}% oxygen at ${LUNAR_ATMOSPHERE.psia} psia`,
     )
+    expect(claim('bass2.cstr.c0').value).toBe(N2_PRESET.o2InitPct)
+    expect(quoteOf('bass2.cstr.c0')).toContain(`C(0) = ${N2_PRESET.o2InitPct} percent O2`)
   })
 })

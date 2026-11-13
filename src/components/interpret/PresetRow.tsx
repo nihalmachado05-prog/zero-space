@@ -2,7 +2,7 @@ import { RotateCcw } from 'lucide-react'
 import { useRef, type KeyboardEvent, type ReactNode } from 'react'
 import { CO_PPM_PER_PCT_CO2, US_LAB_VOLUME_M3 } from '../../lib/cabin'
 import { getClaim } from '../../lib/claims'
-import { LUNAR_ATMOSPHERE, M5_POWER_W, M5_TEST, PRESET_IDS, PRESETS, type PresetId } from '../../lib/interpret'
+import { LUNAR_ATMOSPHERE, M5_POWER_W, M5_TEST, N2_PRESET, PRESET_IDS, PRESETS, type PresetId } from '../../lib/interpret'
 import { interpretStore, useSim } from '../../lib/interpretStore'
 import { formatHash } from '../../lib/route'
 import { Cite } from '../Cite'
@@ -33,7 +33,8 @@ const CAPTIONS: Record<PresetId, () => ReactNode> = {
   n2: () => (
     <>
       BASS-II used N2 dilution to set test oxygen levels, not to fight fires
-      <Cite id="bass2.cstr.hours" />. Here it runs with a small rod fire burning.
+      <Cite id="bass2.cstr.hours" />. Here it starts from {n(N2_PRESET.o2InitPct)}% O2, as NASA’s dilution calibration did
+      <Cite id="bass2.cstr.c0" />, with a small rod fire burning.
     </>
   ),
   lunar: () => (

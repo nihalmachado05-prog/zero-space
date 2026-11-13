@@ -35,7 +35,8 @@ export function NasaChecks() {
     {
       check: (
         <>
-          Dilution time with N2 only (no fire), {n(N2_PRESET.o2InitPct)}% to the blowoff limit at {n(BLOWOFF_FLOW_CM_S)} cm/s (
+          Dilution time with N2 only (no fire), {n(N2_PRESET.o2InitPct)}%
+          <Cite id="bass2.cstr.c0" /> to the blowoff limit at {n(BLOWOFF_FLOW_CM_S)} cm/s (
           {n(model.limit.toFixed(2))}%)
           <Cite id="twin.orbit-limit" />
         </>

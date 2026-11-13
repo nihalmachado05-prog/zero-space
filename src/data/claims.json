@@ -600,6 +600,22 @@
     "verified": true
   },
   {
+    "id": "bass2.cstr.c0",
+    "topic": "suppression",
+    "text": "The on-orbit dilution calibration started at 20.9% O2 on the CSA-CP sensor",
+    "value": 20.9,
+    "unit": "% O2",
+    "kind": "quoted",
+    "sourceId": "nasa-tm-20210011385",
+    "quote": "CSA-CP sensor C(0) = 20.9 percent O2",
+    "locator": {
+      "pdfPage": 124,
+      "reportPage": 116,
+      "spansNextPage": false
+    },
+    "verified": true
+  },
+  {
     "id": "bass2.cstr.n2-max",
     "topic": "suppression",
     "text": "N2 flow rate 0.0005 m3/min maximum, adjustable",
