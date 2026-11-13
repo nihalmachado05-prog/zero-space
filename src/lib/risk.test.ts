@@ -1,0 +1,345 @@
+import { describe, expect, it } from 'vitest'
+import flowByTestJson from '../../docs/fixtures/flow-by-test.json'
+import riskExpected from '../../docs/fixtures/risk-components.json'
+import csvText from '../../pipeline/sources/PSI-25/PSI-25_Experimental table_BASS-II.csv?raw'
+import { compileBass2, type Bass2Row, type FlowByTest, type SampleType } from './audit'
+import { solidResponseTimeS } from './physics'
+import {
+  COMPONENT_KEYS,
+  componentScores,
+  coverage,
+  EQUAL_WEIGHTS,
+  familyFlows,
+  ignitionGapScore,
+  isEqualWeights,
+  leaderboard,
+  lowestO2Tested,
+  riskEntities,
+  riskIndex,
+  setWeight,
+  TEST1_IGNITION_S,
+  unrankedGroups,
+  type RiskEntity,
+  type Weights,
+} from './risk'
+
+const rows = compileBass2(csvText, flowByTestJson as FlowByTest)
+const entities = riskEntities(rows)
+const entity = (id: string): RiskEntity => {
+  const found = entities.find((e) => e.id === id)
+  if (!found) throw new Error(`no entity ${id}`)
+  return found
+}
+const order = (weights: Weights) => leaderboard(entities, weights).rows.map((row) => row.entity.id)
+const only = (key: keyof Weights): Weights => ({ lowO2: 0, coYield: 0, ignitionGap: 0, [key]: 1 })
+
+type ExpectedMeasured = { value: number; unit: string; n: number | null; test?: string }
+type ExpectedEntity = {
+  id: string
+  label: string
+  tests: number
+  burnConfirmed: number
+  components: Partial<Record<'lowO2' | 'coYield' | 'ignitionGap', ExpectedMeasured>>
+  ranked: boolean
+  flows: Record<string, number>
+}
+const expected = riskExpected.entities as ExpectedEntity[]
+
+/** How many decimals a fixture value was written with: the tolerance is half its last digit. */
+const halfLastDigit = (value: number) => 0.5 * 10 ** -(String(value).split('.')[1]?.length ?? 0)
+
+describe('measured components, recomputed from the raw PSI-25 CSV (risk-components.json)', () => {
+  it('has one entity per sample type in the CSV, the same 17 as the fixture', () => {
+    expect(entities.map((e) => e.id).sort()).toEqual(expected.map((e) => e.id).sort())
+  })
+
+  for (const want of expected) {
+    it(`${want.id}: tests, burns, components, flows and ranking`, () => {
+      const got = entity(want.id)
+      expect(got.label).toBe(want.label)
+      expect(got.tests).toBe(want.tests)
+      expect(got.burnConfirmed).toBe(want.burnConfirmed)
+      expect(got.ranked).toBe(want.ranked)
+      expect(got.flows).toEqual(want.flows)
+      expect(Object.keys(got.components).sort()).toEqual(Object.keys(want.components).sort())
+      for (const [key, measured] of Object.entries(want.components)) {
+        const ours = got.components[key as keyof typeof want.components]!
+        expect(Math.abs(ours.value - measured.value), `${key} ${ours.value}`).toBeLessThanOrEqual(
+          halfLastDigit(measured.value),
+        )
+        expect(ours.unit).toBe(measured.unit)
+        expect(ours.n).toBe(measured.n)
+        if (measured.test) expect(ours.testId).toBe(measured.test)
+        expect(ours.claimIds.length).toBe(1)
+      }
+    })
+  }
+
+  it('puts finding claims on Nomex and the wax candle only', () => {
+    expect(entity('nomex').findingClaimIds).toEqual(['bass2.nomex'])
+    expect(entity('wax-candle').findingClaimIds).toEqual(['bass2.wax-droplet'])
+    expect(entities.filter((e) => e.findingClaimIds.length > 0)).toHaveLength(2)
+  })
+
+  it('keeps CO yield to 0.1 ppm per %, as shown, so the index can be redone from the screen', () => {
+    // Slab 5 mm's median is 344.44…; unrounded, its equal-weight index would be 34.67, not 34.6.
+    expect(entity('pmma-slab-5').components.coYield?.value).toBe(344.4)
+    expect(entity('pmma-rod-9.525').components.coYield?.value).toBe(291.4)
+  })
+
+  it('measures the ignition gap as t_s ÷ 25 s from the rod diameter alone', () => {
+    expect(TEST1_IGNITION_S).toBe(25)
+    expect(entity('pmma-rod-12.7').components.ignitionGap?.value).toBeCloseTo(solidResponseTimeS(12.7) / 25, 10)
+  })
+})
+
+describe('the ranking rule: at least 3 burn-confirmed tests and 2 components', () => {
+  it('ranks the 8 PMMA rods and slabs, nothing else', () => {
+    expect(entities.filter((e) => e.ranked).map((e) => e.id)).toEqual([
+      'pmma-rod-6.35',
+      'pmma-rod-9.525',
+      'pmma-rod-12.7',
+      'pmma-slab-1',
+      'pmma-slab-2',
+      'pmma-slab-3',
+      'pmma-slab-4',
+      'pmma-slab-5',
+    ])
+  })
+
+  it('leaves out a type with fewer than 3 burn-confirmed tests, even with enough tests', () => {
+    expect(entity('pmma-sphere').burnConfirmed).toBe(2)
+    expect(entity('pmma-sphere').ranked).toBe(false)
+    expect(entity('pmma-sphere').components).toEqual({})
+  })
+
+  it('leaves out a rod with fewer than 3 burns: the ignition gap alone is one component', () => {
+    const rod = rows.filter((row) => row.sampleType === 'pmma-rod-12.7')
+    const burning = rod.filter((row) => row.burnConfirmed).slice(0, 2)
+    const unburnt = rod.filter((row) => !row.burnConfirmed)
+    const [thin] = riskEntities([...burning, ...unburnt])
+    expect(Object.keys(thin.components)).toEqual(['ignitionGap'])
+    expect(thin.ranked).toBe(false)
+  })
+
+  it('needs 3 numeric CO values for a CO yield', () => {
+    const slab = rows.filter((row) => row.sampleType === 'pmma-slab-1' && row.burnConfirmed)
+    expect(slab).toHaveLength(3)
+    const noCo: Bass2Row = { ...slab[0], coPerCo2: null }
+    const [few] = riskEntities([noCo, slab[1], slab[2]])
+    expect(few.components.lowO2).toBeDefined()
+    expect(few.components.coYield).toBeUndefined()
+    expect(few.ranked).toBe(false)
+  })
+})
+
+describe('scores', () => {
+  const scores = componentScores(entities.filter((e) => e.ranked))
+  const score = (id: SampleType) => scores.get(id)!
+
+  it('min–max normalizes low-O2 burning: lowest O2 scores 1, highest 0', () => {
+    expect(score('pmma-rod-9.525').lowO2).toBe(1)
+    expect(score('pmma-slab-1').lowO2).toBe(0)
+    expect(score('pmma-rod-6.35').lowO2).toBeCloseTo((18.4 - 14.3) / (18.4 - 13.6), 10)
+  })
+
+  it('min–max normalizes CO yield: highest yield scores 1, lowest 0', () => {
+    expect(score('pmma-slab-2').coYield).toBe(1)
+    expect(score('pmma-rod-9.525').coYield).toBe(0)
+  })
+
+  it('scores the ignition gap as 1 − 25/t_s, not min–max: the 6.35 mm rod is not 0', () => {
+    expect(score('pmma-rod-6.35').ignitionGap).toBeCloseTo(0.575, 3)
+    expect(score('pmma-rod-9.525').ignitionGap).toBeCloseTo(0.811, 3)
+    expect(score('pmma-rod-12.7').ignitionGap).toBeCloseTo(0.894, 3)
+    expect(ignitionGapScore(1)).toBe(0)
+    expect(ignitionGapScore(0.5)).toBe(0)
+    expect(ignitionGapScore(0)).toBe(0)
+  })
+
+  it('keeps every score between 0 and 1', () => {
+    for (const s of scores.values()) {
+      for (const value of Object.values(s)) {
+        expect(value).toBeGreaterThanOrEqual(0)
+        expect(value).toBeLessThanOrEqual(1)
+      }
+    }
+  })
+
+  it('gives a component with no spread 0 for every type, never NaN', () => {
+    const same = entities
+      .filter((e) => e.ranked)
+      .map((e) => ({ ...e, components: { ...e.components, lowO2: { ...e.components.lowO2!, value: 15 } } }))
+    for (const s of componentScores(same).values()) expect(s.lowO2).toBe(0)
+  })
+})
+
+describe('missing components', () => {
+  it('gives slabs no ignition gap and indexes them over their own 2 components', () => {
+    const slab = entity('pmma-slab-2')
+    expect(slab.components.ignitionGap).toBeUndefined()
+    expect(coverage(slab)).toEqual({ measured: 2, of: 3 })
+    expect(coverage(entity('pmma-rod-6.35'))).toEqual({ measured: 3, of: 3 })
+    expect(riskIndex({ lowO2: 0.5, coYield: 1 }, EQUAL_WEIGHTS)).toBeCloseTo(75, 10)
+  })
+
+  it('says "Not scored at these weights" (null) when a type has weight only on components it lacks', () => {
+    expect(riskIndex({ lowO2: 0.5, coYield: 1 }, only('ignitionGap'))).toBeNull()
+    expect(riskIndex({}, EQUAL_WEIGHTS)).toBeNull()
+  })
+
+  it('moves slabs to the unscored list when only the ignition gap has weight', () => {
+    const board = leaderboard(entities, only('ignitionGap'))
+    expect(board.rows.map((row) => row.entity.id)).toEqual(['pmma-rod-12.7', 'pmma-rod-9.525', 'pmma-rod-6.35'])
+    expect(board.unscored.map((u) => u.entity.id)).toEqual([
+      'pmma-slab-1',
+      'pmma-slab-2',
+      'pmma-slab-3',
+      'pmma-slab-4',
+      'pmma-slab-5',
+    ])
+    for (const row of board.rows) expect(Number.isFinite(row.index)).toBe(true)
+  })
+})
+
+describe('the index at equal weights', () => {
+  it('matches the agreed values, riskiest first', () => {
+    const board = leaderboard(entities, EQUAL_WEIGHTS)
+    expect(board.rows.map((row) => [row.entity.id, Number(row.index.toFixed(1))])).toEqual([
+      ['pmma-rod-12.7', 72.0],
+      ['pmma-slab-2', 63.5],
+      ['pmma-rod-9.525', 60.4],
+      ['pmma-rod-6.35', 53.5],
+      ['pmma-slab-3', 47.9],
+      ['pmma-slab-1', 43.5],
+      ['pmma-slab-5', 34.6],
+      ['pmma-slab-4', 25.9],
+    ])
+    expect(board.rows.map((row) => row.rank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
+    expect(board.unscored).toEqual([])
+  })
+
+  it('is the same at any equal weight', () => {
+    const half: Weights = { lowO2: 0.5, coYield: 0.5, ignitionGap: 0.5 }
+    expect(isEqualWeights(half)).toBe(true)
+    expect(order(half)).toEqual(order(EQUAL_WEIGHTS))
+  })
+})
+
+describe('reordering when weights change', () => {
+  it('ranks by low-O2 burning alone, ties by sample type id', () => {
+    // Slabs 4 mm and 5 mm both bottomed out at 17.4%: a tie, so 4 before 5.
+    expect(order(only('lowO2'))).toEqual([
+      'pmma-rod-9.525',
+      'pmma-rod-12.7',
+      'pmma-rod-6.35',
+      'pmma-slab-3',
+      'pmma-slab-2',
+      'pmma-slab-4',
+      'pmma-slab-5',
+      'pmma-slab-1',
+    ])
+    const board = leaderboard(entities, only('lowO2')).rows
+    expect(board[5].index).toBe(board[6].index)
+  })
+
+  it('ranks by CO yield alone', () => {
+    expect(order(only('coYield'))).toEqual([
+      'pmma-slab-2',
+      'pmma-slab-1',
+      'pmma-slab-3',
+      'pmma-slab-5',
+      'pmma-rod-12.7',
+      'pmma-slab-4',
+      'pmma-rod-6.35',
+      'pmma-rod-9.525',
+    ])
+  })
+
+  it('moves a row when one slider moves', () => {
+    const before = order(EQUAL_WEIGHTS)
+    const after = order(setWeight(EQUAL_WEIGHTS, 'ignitionGap', 0))
+    expect(after).not.toEqual(before)
+    expect(after[0]).toBe('pmma-slab-2')
+  })
+})
+
+describe('setWeight', () => {
+  it('snaps to 0.05 steps between 0 and 1', () => {
+    expect(setWeight(EQUAL_WEIGHTS, 'lowO2', 0.333).lowO2).toBe(0.35)
+    expect(setWeight(EQUAL_WEIGHTS, 'lowO2', 7).lowO2).toBe(1)
+    expect(setWeight(EQUAL_WEIGHTS, 'lowO2', -1).lowO2).toBe(0)
+  })
+
+  it('always keeps one slider above 0', () => {
+    const one = only('coYield')
+    const next = setWeight(one, 'coYield', 0)
+    expect(next.coYield).toBe(0.05)
+    expect(COMPONENT_KEYS.some((key) => next[key] > 0)).toBe(true)
+    expect(setWeight(next, 'lowO2', 0.5).lowO2).toBe(0.5)
+  })
+
+  it('returns the same object when nothing changes', () => {
+    expect(setWeight(EQUAL_WEIGHTS, 'lowO2', 1)).toBe(EQUAL_WEIGHTS)
+  })
+})
+
+describe('repeat runs', () => {
+  it('gives identical output every time, and from rows in any order', () => {
+    const a = leaderboard(riskEntities(rows), EQUAL_WEIGHTS)
+    const b = leaderboard(riskEntities(rows), EQUAL_WEIGHTS)
+    expect(b).toEqual(a)
+    const c = leaderboard(riskEntities([...rows].reverse()), EQUAL_WEIGHTS)
+    expect(c.rows.map((row) => [row.entity.id, row.index])).toEqual(a.rows.map((row) => [row.entity.id, row.index]))
+  })
+
+  it('does not change the entities it is given', () => {
+    const copy = structuredClone(entities)
+    leaderboard(entities, only('lowO2'))
+    expect(entities).toEqual(copy)
+  })
+})
+
+describe('unranked groups and their reasons', () => {
+  const groups = unrankedGroups(entities, rows)
+  const group = (family: string) => groups.find((g) => g.family === family)!
+
+  it('lists SIBAL, thin films and the sphere section with reasons, then the two findings', () => {
+    expect(groups.map((g) => [g.label, g.tests, g.reason.kind])).toEqual([
+      ['SIBAL fabric', 27, 'too-small'],
+      ['PMMA thin films', 22, 'few-burns'],
+      ['PMMA sphere section, 4 cm', 2, 'few-burns'],
+      ['Nomex III fabric', 3, 'finding'],
+      ['Japan wax candle', 1, 'finding'],
+    ])
+  })
+
+  it('says SIBAL never moved the sensors: largest CO2 rise 0.07%', () => {
+    expect(group('sibal').reason).toEqual({ kind: 'too-small', largestCo2RisePct: 0.07 })
+    expect(group('sibal').burnConfirmed).toBe(0)
+  })
+
+  it('counts 2 burn-confirmed thin films out of 22', () => {
+    expect(group('film').reason).toEqual({ kind: 'few-burns', burnConfirmed: 2 })
+  })
+
+  it('gives the findings their claims and tests', () => {
+    expect(group('nomex').reason).toEqual({ kind: 'finding', claimIds: ['bass2.nomex'] })
+    expect(group('nomex').testIds).toEqual(['F1', 'F2', 'F3'])
+    expect(group('wax').reason).toEqual({ kind: 'finding', claimIds: ['bass2.wax-droplet'] })
+    expect(group('wax').testIds).toEqual(['F4'])
+    // The candle burned (NASA's notes), but its CO2 rose only 0.1%: under the 0.2% the sensors need.
+    expect(group('wax').largestCo2RisePct).toBe(0.1)
+  })
+})
+
+describe('the sentences shown with the components', () => {
+  it('slabs were never tested below 16.8% O2', () => {
+    expect(lowestO2Tested(rows, 'slab')).toBe(16.8)
+  })
+
+  it('slabs were only tested in opposed flow; rods mix flow directions', () => {
+    expect(familyFlows(entities, 'slab')).toEqual(['Opposed'])
+    expect(familyFlows(entities, 'rod')).toEqual(['Concurrent', 'Opposed', 'Stagnation'])
+  })
+})

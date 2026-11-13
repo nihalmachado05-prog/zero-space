@@ -377,11 +377,14 @@ Moving the O2 slider during a drain stops the drain.
 
 **"Hidden" risk** means how much more dangerous a sample type looks in BASS-II than Earth screening would suggest, built only from measured or cited quantities.
 
-**Components.** Each is normalized 0–1 by min–max across the ranked sample types, with 1 the riskiest:
-1. **Low-oxygen burning:** the lowest final O2 among burn-confirmed tests. Lower means riskier.
+**Components.** Three, each scored 0–1 with 1 the riskiest:
+1. **Low-oxygen burning:** the lowest final O2 among burn-confirmed tests. Lower means riskier. Min–max across the 8 ranked sample types.
    - Label it honestly: "Lowest O2 where BASS-II saw it burn. This depends on what was tested: slabs were never tested below 16.8%."
-2. **CO yield:** the median ppm of CO per 1% CO2 over burn-confirmed tests.
-3. **Earth-test ignition gap,** rods only: t_s ÷ 25 s (`bass2.ign.ts-def`, `bass2.ign.test1-25s`).
+2. **CO yield:** the median ppm of CO per 1% CO2 over burn-confirmed tests, kept to 0.1 as shown (so the index can be redone from the screen). Min–max across the 8 ranked sample types.
+   - Its hover adds: "Slabs were only tested in opposed flow; rods mix flow directions."
+3. **Earth-test ignition gap,** rods only. Measured as t_s ÷ 25 s; scored 1 − 25/t_s, the share of the rod's ignition time that the 25 s Earth igniter misses: 0.575, 0.811 and 0.894 for 6.35, 9.525 and 12.7 mm (`bass2.ign.ts-def`, `bass2.ign.test1-25s`). It is not min–max normalized: that scored the 6.35 mm rod as 0.
+
+Each is a computed claim with its formula in the drawer: `rank.low-o2`, `rank.co-yield`, `rank.ignition-gap` (via `rank.solid-time`), and the index itself `rank.index`.
 
 **Heat release is not a component.** The CSV has no burn times, and heat is calculated from O2 use anyway, so it would double-count.
 
@@ -403,7 +406,8 @@ Moving the O2 slider during a drain stops the drain.
 - PMMA thin films (22 tests): only 2 burn-confirmed.
 - PMMA sphere section (2 tests): too few.
 - Nomex (3 tests): didn't ignite (`bass2.nomex`). Shown as a finding card.
-- Wax candle (1 test): shot a burning droplet upstream (`bass2.wax-droplet`). Shown as a finding card.
+- Wax candle (1 test): shot a burning droplet upstream (`bass2.wax-droplet`). Shown as a finding card. The card quotes `bass2.wax-droplet`; "upstream" is only in the Fig. 3.1 caption (PDF p. 54), which has no verified claim yet, so the card doesn't say it.
+- A ranked type whose weights sum to 0 over its own components: "Not scored at these weights".
 
 **Formula:**
 
@@ -411,23 +415,27 @@ Moving the O2 slider during a drain stops the drain.
 index = 100 × Σ(wᵢ · cᵢ) / Σ(wᵢ)    over the components the sample type has
 ```
 
-- Default weights are equal.
+- Default weights are equal. Weights run 0 to 1 in 0.05 steps, and at least one slider always stays above 0.
 - Each row shows its coverage, e.g. "2 of 3 components measured".
+- If a sample type's weights over its own components sum to 0 (e.g. only the gap slider is up; slabs have no gap), it shows "Not scored at these weights" and moves to the unranked list. Never divide by zero.
+- Ties sort by sample type id.
+- With equal weights the index is: rod 12.7 mm 72.0, slab 2 mm 63.5, rod 9.525 mm 60.4, rod 6.35 mm 53.5, slab 3 mm 47.9, slab 1 mm 43.5, slab 5 mm 34.6, slab 4 mm 25.9.
 
-**Layout:**
-- Rows with large rank numerals, the name, the index value, and a "risk fingerprint" of 4 thin vertical bars, one per component, empty if missing.
-- Weight sliders above the list.
-- Hovering a fingerprint bar shows the measured value, the n tests, and a Cite.
-- The label "ZERO-DRAFT Orbital Risk Index: our composite of measured BASS-II indicators. Not a NASA rating."
+**Layout** (pure black stage, in the Overview's language: no cards, borders or shadows; rows separated by space, not lines):
+- Rows with large rank numerals in JetBrains Mono (muted, the leader's in ink), the name, the index value large in JetBrains Mono beside it, and a "risk fingerprint" of 3 thin cyan vertical bars, one per component. Height is the score and brightness rises with height; width follows the component's weight. A missing component is an empty outline labelled "Not measured".
+- Weight sliders above the list. At 1440×900 the leaderboard and its sliders fit in the first screen; the map and the race sit below.
+- Hovering or focusing a fingerprint bar shows the measured value, the n tests and its footnote number and source; clicking the bar opens the citation drawer. (A hover preview holds no buttons, CLAUDE.md interaction 10, so the bar itself is the citation.) Arrow keys move between bars and rows.
+- Under the title, muted: "ZERO-DRAFT Orbital Risk Index: our composite of measured BASS-II indicators. Not a NASA rating."
 
-**Signature motion:** moving a weight slider reorders the rows live (motion `layout`, 350 ms), and the fingerprint bars morph.
+**Signature motion:** moving a weight slider reorders the rows live (motion `layout`, 350 ms, the strong ease-in-out `cubic-bezier(0.77, 0, 0.175, 1)`), and the fingerprint bars morph. Nothing else moves while it plays.
 
 **Acceptance:** `risk.test.ts` covers:
 - the measured values in `risk-components.json`, recomputed from the real CSV
-- normalization
-- missing components
+- normalization (min–max for low-O2 burning and CO yield; 1 − 25/t_s for the ignition gap)
+- missing components, and "Not scored at these weights" without dividing by zero
 - the rule: fewer than 3 burn-confirmed tests, or fewer than 2 components, means not ranked
-- reordering when weights change
+- the equal-weight index values above
+- reordering when weights change, and ties by sample type id
 - identical output on repeat runs
 
 #### F3b. Flammability map (Olson's U-curve)
@@ -441,7 +449,8 @@ index = 100 × Σ(wᵢ · cᵢ) / Σ(wᵢ)    over the components the sample typ
   - 13.4%, cyan dotted: "Blowoff branch extrapolated to zero stretch: the report's conservative space limit" (`bass2.flam.derate`).
 - **Hatched band** below 1 cm/s: "Flow uncertain" (`bass2.flam.low-flow-uncertain`).
 - **BASS-II rod tests** as a rug of short ticks on the O2 axis: the final O2 of each of the 42 burn-confirmed rod tests. They aren't plotted against flow, because the CSV's airflow cells are sequences of settings (e.g. "5 down to ext"), not one value. Caption: "Final O2 of burn-confirmed BASS-II rod tests".
-- It shares state with F1, so moving a control in one moves the other.
+- It shares state with F1, so moving a control in one moves the other: dragging its (flow, O2) point (or arrow keys on it) and its rod-size control move the Overview, and back.
+- U-curve in cyan, the sustained region a faint red wash, 15.4% amber dashed and 13.4% cyan dotted. Labels are written directly on the lines; there is no legend box.
 
 #### F3c. Ignition race
 
@@ -450,6 +459,7 @@ index = 100 × Σ(wᵢ · cᵢ) / Σ(wᵢ)    over the components the sample typ
 - Markers for t_s: 6.35 mm at 58.8 s, 9.525 mm at 132.3 s, 12.7 mm at 235.2 s.
 - A marker at 230 s: "Longest successful BASS-II ignition".
 - **Signature motion:** a Play button sweeps a cursor across, the Test 1 bar is stamped "Earth test ends", and each rod marker lights as the cursor passes.
+  - The cursor is a thin cyan streak with a short fading tail. When it reaches a rod's t_s, a small flame lights on that rod's marker, labelled "Illustration". The Test 1 bar is stamped "Earth test ends" at 25 s.
 - Cites: `bass2.ign.ts-def`, `bass2.ign.alpha-pmma`, `bass2.ign.test1-25s`, `bass2.ign.230s`, `bass2.ign.test1-too-short`.
 
 #### F3d. Investigation relevance (P1)

@@ -1687,5 +1687,55 @@
     "formula": "O2 where the Earth flame went out - O2 where the orbit flame went out",
     "inputs": ["bass2.flam.vs-1g", "twin.orbit-limit"],
     "verified": true
+  },
+  {
+    "id": "rank.low-o2",
+    "topic": "risk",
+    "text": "Low-O2 burning: the lowest final O2 among a sample type's burn-confirmed BASS-II tests, recomputed from NASA's raw CSV and scored 0 to 1 across the ranked sample types",
+    "unit": "% O2",
+    "kind": "computed",
+    "sourceId": "psi-25",
+    "formula": "lowest calibrated final O2 over tests with usable O2 whose CO2 rose by at least 0.2% (twice the CO2 resolution); score = (highest - this) / (highest - lowest) across the ranked sample types",
+    "inputs": ["bass2.table.o2-columns", "bass2.sensor.co2-res"],
+    "verified": true
+  },
+  {
+    "id": "rank.co-yield",
+    "topic": "risk",
+    "text": "CO yield: the median ppm of CO per 1% CO2 over a sample type's burn-confirmed BASS-II tests, recomputed from NASA's raw CSV and scored 0 to 1 across the ranked sample types",
+    "unit": "ppm CO per 1% CO2",
+    "kind": "computed",
+    "sourceId": "psi-25",
+    "formula": "median of (final CO - initial CO) / (final CO2 - initial CO2) over burn-confirmed tests with numeric CO, to 0.1; score = (this - lowest) / (highest - lowest) across the ranked sample types",
+    "inputs": ["bass2.co.sensor-range", "bass2.sensor.co2-res"],
+    "verified": true
+  },
+  {
+    "id": "rank.solid-time",
+    "topic": "ignition",
+    "text": "Solid-phase response time t_s of each BASS-II PMMA rod",
+    "unit": "s",
+    "kind": "computed",
+    "formula": "t_s = 0.7 r^2 / alpha_s, with r the rod radius and alpha_s = 1.2e-3 cm^2/s",
+    "inputs": ["bass2.ign.ts-def", "bass2.ign.alpha-pmma"],
+    "verified": true
+  },
+  {
+    "id": "rank.ignition-gap",
+    "topic": "risk",
+    "text": "Ignition gap: the share of a PMMA rod's solid response time t_s that NASA Test 1's 25 s igniter misses",
+    "kind": "computed",
+    "formula": "gap = 1 - 25 s / t_s",
+    "inputs": ["rank.solid-time", "bass2.ign.test1-25s"],
+    "verified": true
+  },
+  {
+    "id": "rank.index",
+    "topic": "risk",
+    "text": "ZERO-DRAFT Orbital Risk Index: our weighted mean of a sample type's component scores. Not a NASA rating.",
+    "kind": "computed",
+    "formula": "index = 100 x sum(w_i x c_i) / sum(w_i), over the components the sample type has",
+    "inputs": ["rank.low-o2", "rank.co-yield", "rank.ignition-gap"],
+    "verified": true
   }
 ]

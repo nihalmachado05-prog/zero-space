@@ -15,6 +15,7 @@ import {
 import { CLAIMS, citePreview, getClaim, SOURCES, sourceLink, splitEmphasis } from './claims'
 import { normalize } from './normalize'
 import { ALPHA_PMMA_CM2_S, EARTH_LIMIT_O2_PCT, R0_CM } from './physics'
+import { TEST1_IGNITION_S } from './risk'
 
 const claim = (id: string) => {
   const found = getClaim(id)
@@ -24,12 +25,12 @@ const claim = (id: string) => {
 const quoteOf = (id: string) => normalize(claim(id).quote ?? '')
 
 describe('claims.json', () => {
-  it('holds the 81 report claims, the 36 PSI claims and the 3 computed claims, each id once', () => {
-    expect(CLAIMS).toHaveLength(120)
-    expect(new Set(CLAIMS.map((c) => c.id)).size).toBe(120)
+  it('holds the 81 report claims, the 36 PSI claims and the 8 computed claims, each id once', () => {
+    expect(CLAIMS).toHaveLength(125)
+    expect(new Set(CLAIMS.map((c) => c.id)).size).toBe(125)
     expect(CLAIMS.filter((c) => typeof c.locator?.pdfPage === 'number')).toHaveLength(81)
     expect(CLAIMS.filter((c) => typeof c.locator?.file === 'string')).toHaveLength(36)
-    expect(CLAIMS.filter((c) => c.kind === 'computed')).toHaveLength(3)
+    expect(CLAIMS.filter((c) => c.kind === 'computed')).toHaveLength(8)
   })
 
   it('gives every computed claim a formula and inputs that are verified claims', () => {
@@ -138,6 +139,11 @@ describe('model constants match their quotes', () => {
     expect(quoteOf('bass2.osc-1.1hz')).toContain(`${PULSE_HZ} Hz`)
     expect(claim('bass2.aspect-0.5').value).toBe(QUENCH_ASPECT_RATIO)
     expect(quoteOf('bass2.aspect-0.5')).toContain(`to ${QUENCH_ASPECT_RATIO} at extinction`)
+  })
+
+  it('risk.ts', () => {
+    expect(claim('bass2.ign.test1-25s').value).toBe(TEST1_IGNITION_S)
+    expect(quoteOf('bass2.ign.test1-25s')).toContain(`~${TEST1_IGNITION_S} s`)
   })
 
   it('cabin.ts', () => {
