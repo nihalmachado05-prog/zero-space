@@ -1659,6 +1659,21 @@
     "verified": true
   },
   {
+    "id": "zayac.atmospheres",
+    "topic": "atmospheres",
+    "text": "Atmospheres of immediate interest to the Human Lander System and the Lunar Rover: 21% O2 at 14.7 psia and 34% O2 at 8.2 psia",
+    "kind": "quoted",
+    "sourceId": "zayac-2024",
+    "quote": "specifically 21% oxygen at 14.7 psia, and 34% oxygen at 8.2 psia",
+    "emphasis": "34% oxygen at 8.2 psia",
+    "locator": {
+      "pdfPage": 1,
+      "reportPage": null,
+      "spansNextPage": false
+    },
+    "verified": true
+  },
+  {
     "id": "twin.stretch-rate",
     "topic": "equations",
     "text": "Stretch rate a at the current airflow and rod size",
@@ -1736,6 +1751,45 @@
     "kind": "computed",
     "formula": "index = 100 x sum(w_i x c_i) / sum(w_i), over the components the sample type has",
     "inputs": ["rank.low-o2", "rank.co-yield", "rank.ignition-gap"],
+    "verified": true
+  },
+  {
+    "id": "cabin.model",
+    "topic": "cabin",
+    "text": "Cabin model: what a fire does to O2, CO2 and CO in a sealed, well-mixed volume at 1 atm, with or without N2 dilution",
+    "kind": "computed",
+    "formula": "each second: O2, CO2 and CO x exp(-r dt / V) (Eq. B.2); while the flame burns, O2 falls by Q dt / (13.1 kJ/g x 32 g/mol) / n_total x 100 points, with n_total = p V / (R T) at p = 1 atm and T = 300 K (Eq. 1.3); CO2 rises by 5/6 of that (Eq. 1.1); CO rises by 370 ppm (opposed slab) or 550 ppm (concurrent rod) per 1% of CO2",
+    "inputs": ["bass2.calorimetry-inputs", "bass2.hrr.huggett", "bass2.stoich", "bass2.co.370", "bass2.co.550", "bass2.cstr.model"],
+    "verified": true
+  },
+  {
+    "id": "cabin.m5-power",
+    "topic": "cabin",
+    "text": "Test M5's average heat release rate, from its O2 drop in the MSG",
+    "unit": "W",
+    "kind": "computed",
+    "formula": "Q = (dO2 / 100) x n_total x 32 g/mol x 13.1 kJ/g / t, with dO2 = 22.2 - 19 points and t = 27.2 min from Table 5.1, and n_total = p V / (R T) for the 0.25 m3 MSG",
+    "inputs": ["bass2.m5.row", "bass2.cstr.volume", "bass2.calorimetry-inputs", "bass2.hrr.huggett"],
+    "verified": true
+  },
+  {
+    "id": "cabin.volume-limit",
+    "topic": "cabin",
+    "text": "The sealed volume below which the same fire pushes CO past a limit",
+    "unit": "m3",
+    "kind": "computed",
+    "formula": "V = (CO the fire makes in 1 m3) / limit, because with no dilution CO scales as 1 / V",
+    "inputs": ["cabin.model", "bass2.co.smac"],
+    "verified": true
+  },
+  {
+    "id": "cabin.dilution-time",
+    "topic": "cabin",
+    "text": "How long N2 alone takes to dilute the O2 in a sealed volume from one level to another",
+    "unit": "min",
+    "kind": "computed",
+    "formula": "t = (V / r) ln(C0 / C), Eq. B.2 solved for time",
+    "inputs": ["bass2.cstr.model", "bass2.cstr.volume", "bass2.cstr.n2-flow"],
     "verified": true
   }
 ]

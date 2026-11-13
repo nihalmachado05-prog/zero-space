@@ -1,4 +1,4 @@
-import { CircleCheck, ExternalLink } from 'lucide-react'
+import { CircleCheck, ExternalLink, Play } from 'lucide-react'
 import type { ReactNode } from 'react'
 import {
   BURN_CO2_RISE_PCT,
@@ -19,6 +19,8 @@ import {
 } from '../../lib/audit'
 import { getClaim, getSource, sourceLink, testNoteClaimIds } from '../../lib/claims'
 import { OUTCOME_LABELS, useTestOutcomes } from '../../lib/generatedData'
+import { replayPresetFor } from '../../lib/interpret'
+import { formatHash } from '../../lib/route'
 import { Cite } from '../Cite'
 import { StatusGlyph } from './glyphs'
 import { ShowTheMath } from './ShowTheMath'
@@ -86,6 +88,7 @@ export function RecordDetails({ row, flow, forensic }: { row: Bass2Row; flow?: C
   const datasetLink = dataset ? sourceLink(dataset) : null
   const tableClaim = APPENDIX_TABLE_CLAIM[row.pi]
   const outcome = useTestOutcomes()?.outcomes.find((o) => o.testId === row.testId)
+  const replay = replayPresetFor(row.testId)
 
   return (
     <div className="flex flex-col gap-6">
@@ -98,6 +101,16 @@ export function RecordDetails({ row, flow, forensic }: { row: Bass2Row; flow?: C
         {SEVERITY_LABELS[severity]}
         {severity === 'quarantined' && <span className="text-muted">{quarantineReason(row)}</span>}
       </p>
+
+      {replay && (
+        <a
+          href={formatHash('interpret', { preset: replay })}
+          className="flex w-fit items-center gap-2 text-sm text-cyan hover:underline"
+        >
+          <Play aria-hidden="true" className="size-4" />
+          Replay this test
+        </a>
+      )}
 
       {forensic && (
         <Section title="Show the math">

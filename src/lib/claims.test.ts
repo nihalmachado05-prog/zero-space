@@ -13,6 +13,7 @@ import {
   US_LAB_VOLUME_M3,
 } from './cabin'
 import { CLAIMS, citePreview, getClaim, SOURCES, sourceLink, splitEmphasis } from './claims'
+import { LUNAR_ATMOSPHERE, M5_TEST } from './interpret'
 import { normalize } from './normalize'
 import { ALPHA_PMMA_CM2_S, EARTH_LIMIT_O2_PCT, R0_CM } from './physics'
 import { TEST1_IGNITION_S } from './risk'
@@ -25,12 +26,20 @@ const claim = (id: string) => {
 const quoteOf = (id: string) => normalize(claim(id).quote ?? '')
 
 describe('claims.json', () => {
-  it('holds the 81 report claims, the 36 PSI claims and the 8 computed claims, each id once', () => {
-    expect(CLAIMS).toHaveLength(125)
-    expect(new Set(CLAIMS.map((c) => c.id)).size).toBe(125)
-    expect(CLAIMS.filter((c) => typeof c.locator?.pdfPage === 'number')).toHaveLength(81)
+  it('holds the 81 report claims, the 36 PSI claims, the Zayac poster claim and the 12 computed claims, each id once', () => {
+    expect(CLAIMS).toHaveLength(130)
+    expect(new Set(CLAIMS.map((c) => c.id)).size).toBe(130)
+    expect(CLAIMS.filter((c) => c.sourceId === 'nasa-tm-20210011385')).toHaveLength(81)
+    expect(CLAIMS.filter((c) => typeof c.locator?.pdfPage === 'number')).toHaveLength(82)
     expect(CLAIMS.filter((c) => typeof c.locator?.file === 'string')).toHaveLength(36)
-    expect(CLAIMS.filter((c) => c.kind === 'computed')).toHaveLength(8)
+    expect(CLAIMS.filter((c) => c.kind === 'computed')).toHaveLength(12)
+  })
+
+  it('quotes the lunar lander atmospheres from page 1 of the Zayac 2024 poster', () => {
+    const zayac = claim('zayac.atmospheres')
+    expect(zayac.sourceId).toBe('zayac-2024')
+    expect(zayac.locator?.pdfPage).toBe(1)
+    expect(zayac.quote).toBe('specifically 21% oxygen at 14.7 psia, and 34% oxygen at 8.2 psia')
   })
 
   it('gives every computed claim a formula and inputs that are verified claims', () => {
@@ -88,6 +97,7 @@ describe('citePreview', () => {
     expect(citePreview(claim('bass2.lab-partner'))).toBe('BASS-II report, PDF p. 4')
     expect(citePreview(claim('psi69.pressure'))).toBe('PSI-69, line 42')
     expect(citePreview(claim('psi26.impacts'))).toBe('PSI-26, line 69')
+    expect(citePreview(claim('zayac.atmospheres'))).toBe('Zayac 2024, PDF p. 1')
   })
 
   it('says a computed value is calculated, and gives the row for data rows', () => {
@@ -159,5 +169,15 @@ describe('model constants match their quotes', () => {
     expect(claim('bass2.cstr.volume').value).toBe(MSG_VOLUME_M3)
     expect(claim('bass2.cstr.n2-flow').value).toBe(MSG_N2_FLOW_CC_MIN)
     expect(claim('bass2.us-lab-volume').value).toBe(US_LAB_VOLUME_M3)
+  })
+
+  it('interpret.ts', () => {
+    // Table 5.1's M5 row: "M5 3 2.2 2 10 0.071 27.2 22.2 19" (flow, minutes, initial and final O2).
+    expect(quoteOf('bass2.m5.row')).toContain(
+      ` ${M5_TEST.flowCmS} 0.071 ${M5_TEST.minutes} ${M5_TEST.o2InitPct} ${M5_TEST.o2FinalPct}`,
+    )
+    expect(quoteOf('zayac.atmospheres')).toContain(
+      `${LUNAR_ATMOSPHERE.o2Pct}% oxygen at ${LUNAR_ATMOSPHERE.psia} psia`,
+    )
   })
 })

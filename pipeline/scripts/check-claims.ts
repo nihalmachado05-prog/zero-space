@@ -17,9 +17,10 @@ import { normalize } from '../../src/lib/normalize'
 const ROOT = fileURLToPath(new URL('../../', import.meta.url))
 const SOURCES_DIR = join(ROOT, 'pipeline', 'sources')
 
-/** Report PDFs live in the folder of the dataset they came with. */
+/** Report PDFs live in the folder of the dataset they came with; a poster has its own folder. */
 const PDF_FOLDER_FOR_SOURCE: Record<string, string> = {
   'nasa-tm-20210011385': 'PSI-25',
+  'zayac-2024': 'zayac-2024',
 }
 
 // An optional argument checks another claims file (used to test that the checker fails).
