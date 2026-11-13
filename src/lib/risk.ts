@@ -289,6 +289,44 @@ export function leaderboard(entities: readonly RiskEntity[], weights: Weights): 
   return { rows: scored.map((row, i) => ({ ...row, rank: i + 1 })), unscored }
 }
 
+/**
+ * How many index points each component adds: wᵢcᵢ ÷ Σwᵢ × 100, over the components the type has.
+ * They add up to the index exactly; each row's bar is cut into these segments. Components it
+ * lacks, or every share when its weights sum to 0, are absent.
+ */
+export function componentShares(scores: Scores, weights: Weights): Partial<Record<ComponentKey, number>> {
+  const own = COMPONENT_KEYS.filter((key) => scores[key] !== undefined)
+  const total = own.reduce((sum, key) => sum + Math.max(0, weights[key]), 0)
+  if (total <= 0) return {}
+  const shares: Partial<Record<ComponentKey, number>> = {}
+  for (const key of own) shares[key] = (100 * Math.max(0, weights[key]) * (scores[key] as number)) / total
+  return shares
+}
+
+/** The component with the largest weighted share; on a tie, the first in COMPONENT_KEYS order. */
+export function biggestFactor(scores: Scores, weights: Weights): ComponentKey | null {
+  const shares = componentShares(scores, weights)
+  let best: ComponentKey | null = null
+  for (const key of COMPONENT_KEYS) {
+    const share = shares[key]
+    if (share === undefined) continue
+    if (best === null || share > (shares[best] as number) + TIE) best = key
+  }
+  return best
+}
+
+/** The headline above the leaderboard: who ranks riskiest at these weights, and why. */
+export function leaderHeadline(
+  board: Leaderboard,
+  weights: Weights,
+): { entity: RiskEntity; factor: ComponentKey; measured: Measured } | null {
+  const leader = board.rows[0]
+  if (!leader) return null
+  const factor = biggestFactor(leader.scores, weights)
+  const measured = factor ? leader.entity.components[factor] : undefined
+  return factor && measured ? { entity: leader.entity, factor, measured } : null
+}
+
 /** "2 of 3 components measured". */
 export function coverage(entity: RiskEntity): { measured: number; of: number } {
   return { measured: Object.keys(entity.components).length, of: COMPONENT_KEYS.length }
@@ -360,11 +398,14 @@ export function unrankedGroups(entities: readonly RiskEntity[], rows: readonly B
   ]
 }
 
-/** The lowest O2, initial or final, that any usable test of a family saw: what was tested at all. */
-export function lowestO2Tested(rows: readonly Bass2Row[], family: SampleFamily): number | null {
+/**
+ * The lowest starting O2 of any usable test of a family. Low-O2 burning also reflects this: a
+ * type never started low can't have been seen burning low.
+ */
+export function lowestInitialO2(rows: readonly Bass2Row[], family: SampleFamily): number | null {
   const values = rows
-    .filter((row) => row.o2Usable && sampleFamily(row.sampleType) === family)
-    .flatMap((row) => [row.o2InitPct, row.o2FinalPct].filter((v): v is number => v !== null))
+    .filter((row) => row.o2Usable && row.o2InitPct !== null && sampleFamily(row.sampleType) === family)
+    .map((row) => row.o2InitPct as number)
   return values.length ? Math.min(...values) : null
 }
 

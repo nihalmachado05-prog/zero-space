@@ -14,6 +14,10 @@ import { Cite } from '../Cite'
 /** "Low-O2 burning" → "low-O2 burning", but "CO yield" stays as it is. */
 const lowerFirst = (text: string) => (/^[A-Z][a-z]/.test(text) ? text[0].toLowerCase() + text.slice(1) : text)
 
+/** "three" for 3; digits past ten. */
+const countWord = (n: number) =>
+  ['none', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'][n] ?? String(n)
+
 /** A percentage with no trailing zeros: 0.07%, 0.1%, 0.2%. */
 const pct = (value: number) => `${Number(value.toFixed(2))}%`
 
@@ -74,7 +78,15 @@ function Finding({ claimId }: { claimId: string }) {
 
 /** Why a finding card's sample type isn't on the leaderboard, from the data. */
 function findingNote(group: UnrankedGroup): ReactNode {
-  if (group.family === 'nomex') return <>Not ranked: none ignited, so there was no fire to measure.</>
+  if (group.family === 'nomex') {
+    // NASA's Appendix A note on F3: "Brief ignition flash, no sustained flame".
+    return (
+      <>
+        Not ranked: no sustained flame in any of the {countWord(group.tests)}
+        <Cite id="bass2.note.f3" />.
+      </>
+    )
+  }
   if (group.tests < MIN_BURN_CONFIRMED && group.largestCo2RisePct !== null) {
     return (
       <>

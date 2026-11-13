@@ -1,28 +1,33 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useCallback, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import type { Leaderboard as Board } from '../../lib/risk'
 import { coverage, COMPONENT_KEYS, type Weights } from '../../lib/risk'
 import { Cite } from '../Cite'
-import { Fingerprint, type FingerprintCell, type FingerprintNotes } from './Fingerprint'
+import { Fingerprint, SLOT_ROOM, type FingerprintCell, type FingerprintNotes } from './Fingerprint'
 import { useReorder } from './reorder'
+import { RiskHeadline } from './RiskHeadline'
 import { WeightSliders } from './WeightSliders'
 
 /** Every row is this tall, so the still rank numerals line up with the rows sliding past them. */
-const ROW_H = 'h-14'
+const ROW_H = 'h-13'
+/** Name, index, then the bar filling the rest: the same columns for the rows and the scale above them. */
+const ROW_GRID = 'grid grid-cols-[minmax(0,15rem)_6rem_minmax(0,1fr)] items-center gap-x-8'
 
 type LeaderboardProps = {
   board: Board
   weights: Weights
   notes: FingerprintNotes
+  /** Shown under the low-O2 slider's caption: what was tested. */
+  lowO2Note: ReactNode | null
 }
 
 /**
  * F3a: the Orbital Risk Index leaderboard. The rank numerals stand still in their own column;
- * when a weight changes, the rows slide past them to their new places and the fingerprint bars
- * morph (the signature motion). Nothing else moves. Arrow keys step through the fingerprint bars,
- * up and down the rows and across the components.
+ * when a weight changes, the rows slide past them to their new places and the bars' segments
+ * resize (the signature motion). Nothing else moves. Arrow keys step through the segments, up and
+ * down the rows and across the components.
  */
-export function Leaderboard({ board, weights, notes }: LeaderboardProps) {
+export function Leaderboard({ board, weights, notes, lowO2Note }: LeaderboardProps) {
   const { move, fade } = useReorder()
   const listRef = useRef<HTMLOListElement>(null)
   const [active, setActive] = useState<FingerprintCell>({ row: 0, col: 0 })
@@ -50,7 +55,7 @@ export function Leaderboard({ board, weights, notes }: LeaderboardProps) {
   const tabCell = active.row < rows.length ? active : { row: 0, col: active.col }
 
   return (
-    <section aria-labelledby="risk-heading" className="flex min-w-0 flex-col gap-5">
+    <section aria-labelledby="risk-heading" className="flex min-w-0 flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h2 id="risk-heading" className="text-xl leading-7 font-semibold">
           Orbital Risk Index
@@ -65,7 +70,19 @@ export function Leaderboard({ board, weights, notes }: LeaderboardProps) {
         </p>
       </div>
 
-      <WeightSliders weights={weights} />
+      <RiskHeadline board={board} weights={weights} />
+
+      <WeightSliders weights={weights} lowO2Note={lowO2Note} />
+
+      {/* The shared scale every bar is drawn on. */}
+      <div aria-hidden="true" className={`${ROW_GRID} -mb-2 pl-[4.5rem] text-xs leading-4 text-muted`}>
+        <span />
+        <span className="text-right">Index</span>
+        <span className="num flex justify-between" style={{ width: `calc(100% - ${SLOT_ROOM})` }}>
+          <span>0</span>
+          <span>100</span>
+        </span>
+      </div>
 
       <div className="flex gap-2">
         {/* The rank numerals: still, while the rows slide past. The list itself says the rank. */}
@@ -91,7 +108,7 @@ export function Leaderboard({ board, weights, notes }: LeaderboardProps) {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className={`grid ${ROW_H} grid-cols-[minmax(0,15rem)_7rem_auto] items-center gap-x-8`}
+                  className={`${ROW_GRID} ${ROW_H}`}
                 >
                   <div className="min-w-0">
                     <p className="truncate text-base leading-6">
@@ -110,6 +127,7 @@ export function Leaderboard({ board, weights, notes }: LeaderboardProps) {
                     entity={row.entity}
                     scores={row.scores}
                     weights={weights}
+                    index={row.index}
                     row={i}
                     active={tabCell}
                     onActivate={setActive}

@@ -125,9 +125,12 @@ export function IgnitionRace() {
         {/* The track */}
         <div className="relative min-w-0 flex-1">
           <div className="relative" style={{ height: TOP_LANE_H }}>
-            <span ref={timeRef} className="num absolute top-1 left-0 text-xs leading-4 text-muted">
-              0 s
-            </span>
+            <p className="absolute top-1 left-0 text-xs leading-4 whitespace-nowrap text-muted">
+              Play clock{' '}
+              <span ref={timeRef} className="num text-ink">
+                0 s
+              </span>
+            </p>
             <p
               className="absolute top-1 text-xs leading-4 whitespace-nowrap text-ink"
               style={{ right: `calc(100% - ${pct(LONGEST_IGNITION_S)} + 6px)` }}
@@ -175,23 +178,15 @@ export function IgnitionRace() {
                     t<sub>s</sub> <span className="tabular-nums">{marker.tsS.toFixed(1)}</span> s <Cite id="rank.solid-time" />
                   </p>
                   {lit && (
-                    <>
-                      <div
-                        className="appear absolute origin-left"
-                        style={{
-                          left: `calc(${pct(marker.tsS)} - ${RACE_FLAME.noseX}px)`,
-                          top: TRACK_Y - RACE_FLAME.noseY,
-                        }}
-                      >
-                        <RaceFlame rodMm={marker.rodMm} />
-                      </div>
-                      <p
-                        className="appear absolute origin-right text-xs leading-4 whitespace-nowrap text-muted"
-                        style={{ right: `calc(100% - ${pct(marker.tsS)} + ${RACE_FLAME.noseX + 4}px)`, top: TRACK_Y + 6 }}
-                      >
-                        Illustration
-                      </p>
-                    </>
+                    <div
+                      className="appear absolute origin-left"
+                      style={{
+                        left: `calc(${pct(marker.tsS)} - ${RACE_FLAME.noseX}px)`,
+                        top: TRACK_Y - RACE_FLAME.noseY,
+                      }}
+                    >
+                      <RaceFlame rodMm={marker.rodMm} />
+                    </div>
                   )}
                   <span
                     aria-hidden="true"
@@ -202,6 +197,11 @@ export function IgnitionRace() {
                 </div>
               )
             })}
+
+            {/* One tag for all three little flames, once the first has lit. */}
+            {passed.rods.length > 0 && (
+              <p className="appear absolute bottom-1 left-0 origin-left text-xs leading-4 text-muted">Illustration</p>
+            )}
 
             {/* The streak, clipped to the track. Its tail shows only while it moves. */}
             <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">

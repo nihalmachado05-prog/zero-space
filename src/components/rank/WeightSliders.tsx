@@ -13,6 +13,7 @@ import {
   type Weights,
 } from '../../lib/risk'
 import { Cite } from '../Cite'
+import { SEGMENT_STYLE } from './segments'
 
 const HINTS: Record<ComponentKey, ReactNode> = {
   lowO2: 'Lowest O2 where BASS-II saw it burn',
@@ -27,14 +28,14 @@ const HINTS: Record<ComponentKey, ReactNode> = {
 /**
  * The three weight sliders. Each takes effect at once and the leaderboard reorders (CLAUDE.md
  * interaction 13). At least one weight always stays above 0 (risk.setWeight), so the last one
- * up stops at its first step.
+ * up stops at its first step. Each label has a swatch in its segment's color.
  */
-export function WeightSliders({ weights }: { weights: Weights }) {
+export function WeightSliders({ weights, lowO2Note }: { weights: Weights; lowO2Note: ReactNode | null }) {
   return (
     <div className="flex items-start gap-8">
       <div className="grid flex-1 grid-cols-3 gap-8">
         {COMPONENT_KEYS.map((key) => (
-          <WeightSlider key={key} component={key} weight={weights[key]} />
+          <WeightSlider key={key} component={key} weight={weights[key]} note={key === 'lowO2' ? lowO2Note : null} />
         ))}
       </div>
       <button
@@ -50,12 +51,17 @@ export function WeightSliders({ weights }: { weights: Weights }) {
   )
 }
 
-function WeightSlider({ component, weight }: { component: ComponentKey; weight: number }) {
+function WeightSlider({ component, weight, note }: { component: ComponentKey; weight: number; note: ReactNode | null }) {
   const id = useId()
   return (
     <div className="min-w-0">
       <div className="flex items-baseline justify-between gap-2 text-sm leading-5 whitespace-nowrap">
-        <span>
+        <span className="flex items-baseline">
+          <span
+            aria-hidden="true"
+            className="mr-2 inline-block size-2.5 shrink-0 self-center"
+            style={{ background: SEGMENT_STYLE[component].fill }}
+          />
           <label htmlFor={id} className="text-ink">
             {COMPONENT_LABELS[component]}
           </label>
@@ -77,6 +83,7 @@ function WeightSlider({ component, weight }: { component: ComponentKey; weight: 
         className="slider mt-1 block w-full"
       />
       <p className="text-xs leading-4 text-muted">{HINTS[component]}</p>
+      {note && <p className="mt-1 text-xs leading-4 text-muted tabular-nums">{note}</p>}
     </div>
   )
 }

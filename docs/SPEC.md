@@ -379,7 +379,7 @@ Moving the O2 slider during a drain stops the drain.
 
 **Components.** Three, each scored 0–1 with 1 the riskiest:
 1. **Low-oxygen burning:** the lowest final O2 among burn-confirmed tests. Lower means riskier. Min–max across the 8 ranked sample types.
-   - Label it honestly: "Lowest O2 where BASS-II saw it burn. This depends on what was tested: slabs were never tested below 16.8%."
+   - Label it honestly, under its slider caption, computed from bass2.json: "Also reflects what was tested: slab tests never started below 17.9% O2; rod tests started as low as 13.6%." These are the lowest starting O2 of usable slab and rod tests (`risk.lowestInitialO2`). Not 16.8%: that is the lowest final O2 a slab reached.
 2. **CO yield:** the median ppm of CO per 1% CO2 over burn-confirmed tests, kept to 0.1 as shown (so the index can be redone from the screen). Min–max across the 8 ranked sample types.
    - Its hover adds: "Slabs were only tested in opposed flow; rods mix flow directions."
 3. **Earth-test ignition gap,** rods only. Measured as t_s ÷ 25 s; scored 1 − 25/t_s, the share of the rod's ignition time that the 25 s Earth igniter misses: 0.575, 0.811 and 0.894 for 6.35, 9.525 and 12.7 mm (`bass2.ign.ts-def`, `bass2.ign.test1-25s`). It is not min–max normalized: that scored the 6.35 mm rod as 0.
@@ -405,7 +405,7 @@ Each is a computed claim with its formula in the drawer: `rank.low-o2`, `rank.co
 - SIBAL fabric (27 tests): no fire moved the sensors past their resolution.
 - PMMA thin films (22 tests): only 2 burn-confirmed.
 - PMMA sphere section (2 tests): too few.
-- Nomex (3 tests): didn't ignite (`bass2.nomex`). Shown as a finding card.
+- Nomex (3 tests): didn't ignite (`bass2.nomex`). Shown as a finding card that says "no sustained flame in any of the three": NASA's Appendix A note on F3 reads "Brief ignition flash, no sustained flame" (`bass2.note.f3`).
 - Wax candle (1 test): shot a burning droplet upstream (`bass2.wax-droplet`). Shown as a finding card. The card quotes `bass2.wax-droplet`; "upstream" is only in the Fig. 3.1 caption (PDF p. 54), which has no verified claim yet, so the card doesn't say it.
 - A ranked type whose weights sum to 0 over its own components: "Not scored at these weights".
 
@@ -422,12 +422,13 @@ index = 100 × Σ(wᵢ · cᵢ) / Σ(wᵢ)    over the components the sample typ
 - With equal weights the index is: rod 12.7 mm 72.0, slab 2 mm 63.5, rod 9.525 mm 60.4, rod 6.35 mm 53.5, slab 3 mm 47.9, slab 1 mm 43.5, slab 5 mm 34.6, slab 4 mm 25.9.
 
 **Layout** (pure black stage, in the Overview's language: no cards, borders or shadows; rows separated by space, not lines):
-- Rows with large rank numerals in JetBrains Mono (muted, the leader's in ink), the name, the index value large in JetBrains Mono beside it, and a "risk fingerprint" of 3 thin cyan vertical bars, one per component. Height is the score and brightness rises with height; width follows the component's weight. A missing component is an empty outline labelled "Not measured".
+- A headline above the leaderboard, Archivo about 20px, computed by `risk.leaderHeadline` and updating live with the weights: "{leader} ranks riskiest at these weights. Its biggest factor: {phrase}." The biggest factor is the component with the largest weighted share. Phrases: low-O2 "it burned down to {v}% oxygen ({test})"; CO yield "it made a median {v} ppm CO per 1% CO2"; ignition gap "it needs {t_s} s of heating, {ratio} times the Earth test's 25 s igniter" (25 s with its Cite). No hardcoded numbers.
+- Rows with large rank numerals in JetBrains Mono (muted, the leader's in ink), the name, the index value large in JetBrains Mono beside it, and a "risk fingerprint": one wide horizontal bar filling the rest of the row. Its length is the index on a 0–100 scale shared by every row, split into one segment per component; each segment's length is that component's weighted share, wᵢcᵢ ÷ Σwᵢ × 100 (`risk.componentShares`), so the segments add up exactly to the index. Three cyan intensities with 2px gaps (cut from the segment's fill, so lengths stay exact), the component name inside each segment when it fits, and a matching swatch beside each slider label. A missing component is a short dashed slot labelled "Not measured".
 - Weight sliders above the list. At 1440×900 the leaderboard and its sliders fit in the first screen; the map and the race sit below.
-- Hovering or focusing a fingerprint bar shows the measured value, the n tests and its footnote number and source; clicking the bar opens the citation drawer. (A hover preview holds no buttons, CLAUDE.md interaction 10, so the bar itself is the citation.) Arrow keys move between bars and rows.
+- Hovering or focusing a segment shows the measured value, the n tests, its 0–1 score and its footnote number and source; clicking the segment opens the citation drawer. (A hover preview holds no buttons, CLAUDE.md interaction 10, so the segment itself is the citation.) Arrow keys move between segments and rows.
 - Under the title, muted: "ZERO-DRAFT Orbital Risk Index: our composite of measured BASS-II indicators. Not a NASA rating."
 
-**Signature motion:** moving a weight slider reorders the rows live (motion `layout`, 350 ms, the strong ease-in-out `cubic-bezier(0.77, 0, 0.175, 1)`), and the fingerprint bars morph. Nothing else moves while it plays.
+**Signature motion:** moving a weight slider reorders the rows live (motion `layout`, 350 ms, the strong ease-in-out `cubic-bezier(0.77, 0, 0.175, 1)`), and each bar's segments resize in the same 350 ms. Nothing else moves while it plays.
 
 **Acceptance:** `risk.test.ts` covers:
 - the measured values in `risk-components.json`, recomputed from the real CSV
@@ -459,7 +460,8 @@ index = 100 × Σ(wᵢ · cᵢ) / Σ(wᵢ)    over the components the sample typ
 - Markers for t_s: 6.35 mm at 58.8 s, 9.525 mm at 132.3 s, 12.7 mm at 235.2 s.
 - A marker at 230 s: "Longest successful BASS-II ignition".
 - **Signature motion:** a Play button sweeps a cursor across, the Test 1 bar is stamped "Earth test ends", and each rod marker lights as the cursor passes.
-  - The cursor is a thin cyan streak with a short fading tail. When it reaches a rod's t_s, a small flame lights on that rod's marker, labelled "Illustration". The Test 1 bar is stamped "Earth test ends" at 25 s.
+  - The cursor is a thin cyan streak with a short fading tail. When it reaches a rod's t_s, a small flame lights on that rod's marker. One "Illustration" tag covers all three flames. The Test 1 bar is stamped "Earth test ends" at 25 s.
+  - The race time is labelled "Play clock", top left.
 - Cites: `bass2.ign.ts-def`, `bass2.ign.alpha-pmma`, `bass2.ign.test1-25s`, `bass2.ign.230s`, `bass2.ign.test1-too-short`.
 
 #### F3d. Investigation relevance (P1)

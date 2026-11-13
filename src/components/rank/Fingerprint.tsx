@@ -1,10 +1,11 @@
 import { motion, type Transition } from 'motion/react'
-import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { useId, useRef, type FocusEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { citePreview, getClaim } from '../../lib/claims'
 import {
   COMPONENT_CLAIMS,
   COMPONENT_KEYS,
   COMPONENT_LABELS,
+  componentShares,
   MIN_BURN_CONFIRMED,
   TEST1_IGNITION_S,
   type ComponentKey,
@@ -16,16 +17,15 @@ import { useCitation } from '../citationContext'
 import { useFootnoteNumber } from '../footnoteContext'
 import { useHoverPreview } from '../useHoverPreview'
 import { BarPreview } from './BarPreview'
+import { SEGMENT_STYLE } from './segments'
 
-/** Bar height and widest width, px. A bar's width follows its weight; its height is its score. */
-const BAR_H = 44
-const BAR_W = 5
-/** The thinnest a bar gets (weight 0), and the shortest (score 0), as fractions. */
-const MIN_WIDTH = 1 / BAR_W
-const MIN_HEIGHT = 1 / BAR_H
+/** Room kept at the right of every bar for a "Not measured" slot, so all rows share one 0–100 scale. */
+export const SLOT_ROOM = '7rem'
+/** The gap between segments, px. It is cut from the segment's fill, so lengths stay exact. */
+const GAP_PX = 2
 
-/** Sentences the hover adds, worked out from the data by the leaderboard. Null hides one. */
-export type FingerprintNotes = { lowO2: ReactNode | null; coYield: ReactNode | null }
+/** Sentences the hover adds, worked out from the data by the view. Null hides one. */
+export type FingerprintNotes = { coYield: ReactNode | null }
 
 export type FingerprintCell = { row: number; col: number }
 
@@ -33,8 +33,9 @@ type FingerprintProps = {
   entity: RiskEntity
   scores: Scores
   weights: Weights
+  index: number
   row: number
-  /** The one bar on the leaderboard that is in the tab order (roving tabindex). */
+  /** The one segment on the leaderboard that is in the tab order (roving tabindex). */
   active: FingerprintCell
   onActivate: (cell: FingerprintCell) => void
   onArrow: (event: KeyboardEvent, cell: FingerprintCell) => void
@@ -43,54 +44,53 @@ type FingerprintProps = {
 }
 
 /**
- * A row's risk fingerprint: three thin cyan bars, one per component. Height is the score and
- * brightness rises with it; width follows the component's weight, so a weight change morphs every
- * bar. A missing component is an empty outline labelled "Not measured". Each bar is its
- * component's citation: hover or focus previews the value, n tests and footnote; click opens it.
+ * A row's risk fingerprint: one horizontal bar whose length is the index on a 0–100 scale shared
+ * by every row, cut into one segment per component. A segment's length is the points it adds,
+ * wᵢcᵢ ÷ Σwᵢ × 100, so the segments add up exactly to the index. On a weight change they resize
+ * while the rows slide. A missing component is a short dashed slot labelled "Not measured".
+ * Each segment is its component's citation: hover or focus previews it, click opens the source.
  */
-export function Fingerprint({ entity, scores, weights, row, active, onActivate, onArrow, notes, move }: FingerprintProps) {
-  const heaviest = Math.max(...COMPONENT_KEYS.map((key) => weights[key]))
-  const missing = COMPONENT_KEYS.some((key) => !entity.components[key])
+export function Fingerprint(props: FingerprintProps) {
+  const { entity, scores, weights, row } = props
+  const shares = componentShares(scores, weights)
+  const lastFilled = [...COMPONENT_KEYS].reverse().find((key) => (shares[key] ?? 0) > 0)
   return (
-    <div className="flex items-end gap-3">
-      <div role="group" aria-label={`Risk fingerprint, ${entity.label}`} className="flex items-end border-b border-line">
-        {COMPONENT_KEYS.map((key, col) => (
-          <Bar
+    <div
+      role="group"
+      aria-label={`Index ${props.index.toFixed(1)} of 100 for ${entity.label}, by component`}
+      className="relative flex h-6 items-center"
+      style={{ width: `calc(100% - ${SLOT_ROOM})` }}
+    >
+      {/* Where 100 is, so lengths read against the same scale on every row. */}
+      <span aria-hidden="true" className="absolute inset-y-0 right-0 w-px bg-line" />
+      {COMPONENT_KEYS.map((key, col) =>
+        entity.components[key] ? (
+          <Segment
             key={key}
+            {...props}
             component={key}
-            entity={entity}
+            share={shares[key] ?? 0}
             score={scores[key]}
-            weight={weights[key]}
-            heaviest={heaviest}
+            last={key === lastFilled}
             cell={{ row, col }}
-            tabbable={active.row === row && active.col === col}
-            onActivate={onActivate}
-            onArrow={onArrow}
-            notes={notes}
-            move={move}
           />
-        ))}
-      </div>
-      {missing && <span className="pb-px text-xs leading-4 text-muted">Not measured</span>}
+        ) : (
+          <Segment key={key} {...props} component={key} share={0} score={undefined} last={false} cell={{ row, col }} />
+        ),
+      )}
     </div>
   )
 }
 
-type BarProps = {
+type SegmentProps = FingerprintProps & {
   component: ComponentKey
-  entity: RiskEntity
+  share: number
   score: number | undefined
-  weight: number
-  heaviest: number
+  last: boolean
   cell: FingerprintCell
-  tabbable: boolean
-  onActivate: (cell: FingerprintCell) => void
-  onArrow: (event: KeyboardEvent, cell: FingerprintCell) => void
-  notes: FingerprintNotes
-  move: Transition
 }
 
-function Bar({ component, entity, score, weight, heaviest, cell, tabbable, onActivate, onArrow, notes, move }: BarProps) {
+function Segment({ component, entity, share, score, last, index, weights, cell, active, onActivate, onArrow, notes, move }: SegmentProps) {
   const ref = useRef<HTMLButtonElement>(null)
   const claimId = COMPONENT_CLAIMS[component]
   const claim = getClaim(claimId)
@@ -99,82 +99,87 @@ function Bar({ component, entity, score, weight, heaviest, cell, tabbable, onAct
   const preview = useHoverPreview()
   const previewId = useId()
   const measured = entity.components[component]
-  const shown = measured !== undefined && score !== undefined
-  const widthFactor = heaviest > 0 ? Math.max(MIN_WIDTH, weight / heaviest) : MIN_WIDTH
-  const lit = shown ? (0.3 + 0.7 * score) * (weight > 0 ? 1 : 0.35) : 0
-
   const label = COMPONENT_LABELS[component]
-  const spoken = shown
-    ? `${label}: ${valueWords(component, entity)}, score ${score.toFixed(2)}, weight ${weight.toFixed(2)}`
+  const style = SEGMENT_STYLE[component]
+  const spoken = measured
+    ? `${label}: ${valueWords(component, entity)}, score ${score?.toFixed(2)}, adds ${share.toFixed(1)} points`
     : `${label}: not measured`
+
+  const shared = {
+    'data-fingerprint': `${cell.row}-${cell.col}`,
+    tabIndex: active.row === cell.row && active.col === cell.col ? 0 : -1,
+    'aria-label': `${spoken}. Footnote ${number ?? ''}, show source`,
+    'aria-describedby': preview.open ? previewId : undefined,
+    'aria-haspopup': 'dialog' as const,
+    onClick: () => {
+      preview.hide(true)
+      openCitation(claimId)
+    },
+    ...preview.triggerProps,
+    onFocus: (event: FocusEvent<HTMLElement>) => {
+      onActivate(cell)
+      preview.triggerProps.onFocus(event)
+    },
+    onKeyDown: (event: KeyboardEvent) => {
+      preview.triggerProps.onKeyDown(event)
+      onArrow(event, cell)
+    },
+  }
 
   return (
     <>
-      <button
-        ref={ref}
-        type="button"
-        data-fingerprint={`${cell.row}-${cell.col}`}
-        tabIndex={tabbable ? 0 : -1}
-        aria-label={`${spoken}. Footnote ${number ?? ''}, show source`}
-        aria-describedby={preview.open ? previewId : undefined}
-        aria-haspopup="dialog"
-        onClick={() => {
-          preview.hide(true)
-          openCitation(claimId)
-        }}
-        {...preview.triggerProps}
-        onFocus={(event) => {
-          onActivate(cell)
-          preview.triggerProps.onFocus(event)
-        }}
-        onKeyDown={(event) => {
-          preview.triggerProps.onKeyDown(event)
-          onArrow(event, cell)
-        }}
-        // The hit area is the whole 14 px slot, wider than the bar it draws.
-        className="relative block w-3.5 cursor-pointer focus-visible:outline-offset-0"
-        style={{ height: BAR_H }}
-      >
-        {shown ? (
-          <motion.span
-            aria-hidden="true"
-            className="absolute bottom-0 left-1/2 origin-bottom bg-cyan"
-            style={{ width: BAR_W, height: BAR_H, marginLeft: -BAR_W / 2 }}
-            initial={false}
-            animate={{ scaleY: Math.max(MIN_HEIGHT, score), scaleX: widthFactor, opacity: lit }}
-            transition={move}
-          />
-        ) : (
+      {measured ? (
+        <motion.button
+          ref={ref}
+          type="button"
+          {...shared}
+          // A size container, so the name inside shows only when the segment is wide enough.
+          className="@container relative h-6 shrink-0 cursor-pointer focus-visible:outline-offset-1"
+          initial={false}
+          animate={{ width: `${share}%` }}
+          transition={move}
+        >
           <span
             aria-hidden="true"
-            className="absolute bottom-0 left-1/2 border border-muted/70"
-            style={{ width: BAR_W + 2, height: BAR_H, marginLeft: -(BAR_W + 2) / 2 }}
+            className="absolute inset-y-0 left-0"
+            style={{ right: last ? 0 : GAP_PX, background: style.fill }}
           />
-        )}
-      </button>
+          <span
+            aria-hidden="true"
+            className={`absolute inset-y-0 left-2 flex items-center text-xs leading-4 whitespace-nowrap ${style.text} ${style.fit}`}
+          >
+            {label}
+          </span>
+        </motion.button>
+      ) : (
+        <button
+          ref={ref}
+          type="button"
+          {...shared}
+          className="ml-1 flex h-6 w-24 shrink-0 cursor-pointer items-center justify-center border border-dashed border-muted/70 text-xs leading-4 text-muted"
+        >
+          Not measured
+        </button>
+      )}
       {preview.open && (
         <BarPreview id={previewId} anchor={ref} {...preview.previewProps}>
           <p className="font-semibold">
             {label}
             {number !== undefined && <sup className="ml-0.5 font-semibold text-cyan">{number}</sup>}
           </p>
-          {shown ? (
+          {measured && score !== undefined ? (
             <>
               <p className="tabular-nums">{valueLine(component, entity)}</p>
               <p className="text-muted tabular-nums">
-                Score {score.toFixed(2)} of 1, weight {weight.toFixed(2)}
+                Score {score.toFixed(2)} of 1, weight {weights[component].toFixed(2)}: adds {share.toFixed(1)} of its{' '}
+                {index.toFixed(1)} index points
               </p>
-              {component === 'lowO2' && notes.lowO2 && <p className="text-muted">{notes.lowO2}</p>}
               {component === 'coYield' && notes.coYield && <p className="text-muted">{notes.coYield}</p>}
             </>
           ) : (
             <p>Not measured: {missingReason(component)}</p>
           )}
-          {claim && (
-            <p className="text-muted">
-              {citePreview(claim)}. Click or press Enter for the source.
-            </p>
-          )}
+          {claim && <p className="text-muted">{citePreview(claim)}. Click or press Enter for the source.</p>}
         </BarPreview>
       )}
     </>
@@ -203,8 +208,8 @@ function valueLine(component: ComponentKey, entity: RiskEntity): ReactNode {
   const tsS = measured.value * TEST1_IGNITION_S
   return (
     <>
-      t<sub>s</sub> {tsS.toFixed(1)} s, {measured.value.toFixed(2)} times Test 1’s {TEST1_IGNITION_S} s. From the rod’s
-      diameter, not from tests
+      t<sub>s</sub> {tsS.toFixed(1)} s, {measured.value.toFixed(2)} times Test 1’s {TEST1_IGNITION_S} s. From the
+      rod’s diameter, not from tests
     </>
   )
 }

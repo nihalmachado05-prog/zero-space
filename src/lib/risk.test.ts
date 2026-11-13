@@ -5,15 +5,18 @@ import csvText from '../../pipeline/sources/PSI-25/PSI-25_Experimental table_BAS
 import { compileBass2, type Bass2Row, type FlowByTest, type SampleType } from './audit'
 import { solidResponseTimeS } from './physics'
 import {
+  biggestFactor,
   COMPONENT_KEYS,
   componentScores,
+  componentShares,
   coverage,
   EQUAL_WEIGHTS,
   familyFlows,
   ignitionGapScore,
   isEqualWeights,
   leaderboard,
-  lowestO2Tested,
+  leaderHeadline,
+  lowestInitialO2,
   riskEntities,
   riskIndex,
   setWeight,
@@ -284,6 +287,61 @@ describe('setWeight', () => {
   })
 })
 
+describe('segment shares and the headline', () => {
+  const weightings: Weights[] = [
+    EQUAL_WEIGHTS,
+    only('lowO2'),
+    only('coYield'),
+    only('ignitionGap'),
+    { lowO2: 0.35, coYield: 0.8, ignitionGap: 0.05 },
+  ]
+
+  it('cuts each row into segments that add up exactly to its index', () => {
+    for (const weights of weightings) {
+      for (const row of leaderboard(entities, weights).rows) {
+        const shares = Object.values(componentShares(row.scores, weights))
+        expect(shares.reduce((sum, share) => sum + share, 0)).toBeCloseTo(row.index, 10)
+        for (const share of shares) expect(share).toBeGreaterThanOrEqual(0)
+      }
+    }
+  })
+
+  it('gives a segment wᵢcᵢ ÷ Σwᵢ × 100, and none for a missing component', () => {
+    const slab = leaderboard(entities, EQUAL_WEIGHTS).rows.find((row) => row.entity.id === 'pmma-slab-2')!
+    const shares = componentShares(slab.scores, EQUAL_WEIGHTS)
+    expect(shares.coYield).toBeCloseTo(50, 10)
+    expect(shares.ignitionGap).toBeUndefined()
+    expect(componentShares(slab.scores, only('ignitionGap'))).toEqual({})
+  })
+
+  it('at equal weights: the 12.7 mm rod leads, and its biggest factor is the ignition gap', () => {
+    // Its weighted shares: low-O2 29.2, CO yield 13.0, ignition gap 29.8.
+    const headline = leaderHeadline(leaderboard(entities, EQUAL_WEIGHTS), EQUAL_WEIGHTS)
+    expect(headline?.entity.id).toBe('pmma-rod-12.7')
+    expect(headline?.factor).toBe('ignitionGap')
+    expect(headline?.measured.value).toBeCloseTo(solidResponseTimeS(12.7) / 25, 10)
+  })
+
+  it('follows the weights', () => {
+    const lowO2 = leaderHeadline(leaderboard(entities, only('lowO2')), only('lowO2'))
+    expect([lowO2?.entity.id, lowO2?.factor, lowO2?.measured.value, lowO2?.measured.testId]).toEqual([
+      'pmma-rod-9.525',
+      'lowO2',
+      13.6,
+      'O4',
+    ])
+    const co = leaderHeadline(leaderboard(entities, only('coYield')), only('coYield'))
+    expect([co?.entity.id, co?.factor, co?.measured.value]).toEqual(['pmma-slab-2', 'coYield', 400.8])
+    const gap = leaderHeadline(leaderboard(entities, only('ignitionGap')), only('ignitionGap'))
+    expect([gap?.entity.id, gap?.factor]).toEqual(['pmma-rod-12.7', 'ignitionGap'])
+  })
+
+  it('breaks a tie for biggest factor in component order', () => {
+    expect(biggestFactor({ lowO2: 0.5, coYield: 0.5 }, EQUAL_WEIGHTS)).toBe('lowO2')
+    expect(biggestFactor({ lowO2: 0.5, coYield: 0.5 }, only('ignitionGap'))).toBeNull()
+  })
+})
+
 describe('repeat runs', () => {
   it('gives identical output every time, and from rows in any order', () => {
     const a = leaderboard(riskEntities(rows), EQUAL_WEIGHTS)
@@ -334,8 +392,10 @@ describe('unranked groups and their reasons', () => {
 })
 
 describe('the sentences shown with the components', () => {
-  it('slabs were never tested below 16.8% O2', () => {
-    expect(lowestO2Tested(rows, 'slab')).toBe(16.8)
+  it('slab tests never started below 17.9% O2; rod tests started as low as 13.6%', () => {
+    // Not 16.8%: that is the lowest final O2 a slab reached, not the lowest it started at.
+    expect(lowestInitialO2(rows, 'slab')).toBe(17.9)
+    expect(lowestInitialO2(rows, 'rod')).toBe(13.6)
   })
 
   it('slabs were only tested in opposed flow; rods mix flow directions', () => {
