@@ -738,12 +738,24 @@ export interface TestOutcomesFile {         // public/data/test-outcomes.json (F
   outcomes: Array<{ testId: string; outcome: Outcome; quote: string | null }>   // quote checked on its page (§7.2)
 }
 
-export interface Measured { value: number; unit: string; n: number; claimIds: string[] }
-export interface RiskEntity {
-  id: string; label: string; tests: number
-  components: { lowO2?: Measured; ignitionGap?: Measured; coYield?: Measured; heat?: Measured }
-  findingClaimIds: string[]
+// Orbital Risk Index (F3a), computed at runtime by lib/risk.ts from bass2.json; not stored in a file.
+// Three components; heat release is not one (F3a says why).
+export type ComponentKey = 'lowO2' | 'coYield' | 'ignitionGap'
+export interface Measured {
+  value: number; unit: string
+  n: number | null                   // tests it was measured over; null for ignitionGap, which comes from the rod's diameter
+  claimIds: string[]                 // the computed claim that explains it: rank.low-o2, rank.co-yield, rank.ignition-gap
+  testId?: string                    // lowO2 only: the test with that final O2 (O4 for the 9.525 mm rod)
 }
+export interface RiskEntity {
+  id: SampleType; label: string; family: SampleFamily
+  tests: number; burnConfirmed: number
+  components: Partial<Record<ComponentKey, Measured>>
+  findingClaimIds: string[]          // Nomex: bass2.nomex; wax candle: bass2.wax-droplet
+  ranked: boolean                    // >= 3 burn-confirmed tests and >= 2 components; doesn't depend on the weights
+  flows: Partial<Record<'Opposed' | 'Concurrent' | 'Stagnation' | 'None', number>>   // flow direction counts, from Appendix A
+}
+// SampleFamily: 'rod' | 'slab' | 'film' | 'sphere' | 'sibal' | 'nomex' | 'wax'
 
 export type Geometry = 'opposed-slab' | 'concurrent-rod'
 export interface CabinInputs {
