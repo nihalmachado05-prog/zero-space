@@ -1,0 +1,155 @@
+import { describe, expect, it } from 'vitest'
+import flowByTestJson from '../../docs/fixtures/flow-by-test.json'
+import csvText from '../../pipeline/sources/PSI-25/PSI-25_Experimental table_BASS-II.csv?raw'
+import { compileBass2, type FlowByTest } from './audit'
+import {
+  bayRows,
+  FILL_MIX_PCT,
+  linkFromParams,
+  matchesFilters,
+  moveInWall,
+  NO_FILTERS,
+  o2Domain,
+  o2FillMixPct,
+  paramsFromLink,
+  tileLabel,
+  wallColumns,
+} from './testWall'
+
+const rows = compileBass2(csvText, flowByTestJson as FlowByTest)
+const columns = wallColumns(rows)
+const count = (filters: Partial<typeof NO_FILTERS>) =>
+  rows.filter((row) => matchesFilters(row, { ...NO_FILTERS, ...filters })).length
+
+describe('wallColumns', () => {
+  it('makes one column per PI in the CSV order, holding every test', () => {
+    expect(columns.map((c) => [c.pi, c.rows.length])).toEqual([
+      ['Bhattacharjee', 22],
+      ['Ferkul', 4],
+      ['Miller', 20],
+      ['Olson', 27],
+      ['Fernandez-Pello', 27],
+      ["T'ien", 29],
+    ])
+  })
+
+  it('orders each column by its Date cell as written, so the 2018 errors sort last', () => {
+    for (const column of columns) {
+      const dates = column.rows.map((r) => r.date)
+      expect(dates).toEqual([...dates].sort())
+    }
+    expect(columns[5].rows.slice(-2).map((r) => r.testId)).toEqual(['T9', 'T18'])
+  })
+
+  it('puts the 7 quarantined tests in the bay, in wall order', () => {
+    // B2 ran 2/19/2014 and B14 7/2/2014, so B2 comes first.
+    expect(bayRows(columns).map((r) => r.testId)).toEqual(['B2', 'B14', 'F3', 'P22a', 'P22b', 'T28a', 'T28b'])
+  })
+})
+
+describe('matchesFilters', () => {
+  it('matches everything with no filters', () => {
+    expect(count({})).toBe(129)
+  })
+
+  it('filters by PI, sample type and family, flow, initial O2, burn and audit group', () => {
+    expect(count({ pi: 'Olson' })).toBe(27)
+    expect(count({ sample: 'pmma-rod-6.35' })).toBe(31)
+    expect(count({ sample: 'family:rod' })).toBe(54)
+    expect(count({ sample: 'family:sibal' })).toBe(27)
+    expect(count({ flow: 'Opposed' })).toBe(67)
+    expect(count({ flow: 'Concurrent' })).toBe(38)
+    expect(count({ flow: 'Stagnation' })).toBe(15)
+    expect(count({ flow: 'not-stated' })).toBe(9)
+    expect(count({ burn: 'confirmed' })).toBe(65)
+    expect(count({ burn: 'not-confirmed' })).toBe(64)
+    expect(count({ audit: 'quarantined' })).toBe(7)
+    expect(count({ audit: 'co-over-range' })).toBe(4)
+    expect(count({ audit: 'date-error' })).toBe(3)
+    expect(count({ audit: 'o2-usable' })).toBe(122)
+    expect(count({ o2: { min: 13.6, max: 22.2 } })).toBe(129)
+    expect(count({ o2: { min: 22.2, max: 22.2 } })).toBe(rows.filter((r) => r.o2InitPct === 22.2).length)
+  })
+
+  it('combines filters', () => {
+    expect(count({ sample: 'family:sibal', burn: 'confirmed' })).toBe(0)
+    expect(count({ pi: 'Miller', flow: 'Opposed' })).toBe(20)
+  })
+})
+
+describe('tile fill', () => {
+  const domain = o2Domain(rows)
+
+  it('spans the data’s initial O2', () => {
+    expect(domain).toEqual({ min: 13.6, max: 22.2 })
+  })
+
+  it('maps the lowest and highest initial O2 to the ends of the cyan mix', () => {
+    expect(o2FillMixPct(domain.min, domain)).toBe(FILL_MIX_PCT.min)
+    expect(o2FillMixPct(domain.max, domain)).toBe(FILL_MIX_PCT.max)
+    expect(o2FillMixPct(null, domain)).toBeNull()
+  })
+})
+
+describe('moveInWall', () => {
+  // Two PI blocks, three across:  a b c | h i
+  //                               d _ f
+  //                               g e
+  const grid = [
+    ['a', 'b', 'c', 'd', null, 'f', 'g', 'e'],
+    ['h', 'i'],
+  ]
+
+  it('steps left and right through the whole wall, skipping empty slots', () => {
+    expect(moveInWall(grid, 'd', 'ArrowRight')).toBe('f')
+    expect(moveInWall(grid, 'e', 'ArrowRight')).toBe('h')
+    expect(moveInWall(grid, 'h', 'ArrowLeft')).toBe('e')
+    expect(moveInWall(grid, 'a', 'ArrowLeft')).toBeNull()
+  })
+
+  it('moves up and down a row within a column, past empty slots', () => {
+    expect(moveInWall(grid, 'a', 'ArrowDown')).toBe('d')
+    expect(moveInWall(grid, 'b', 'ArrowDown')).toBe('e') // the slot between is empty
+    expect(moveInWall(grid, 'e', 'ArrowUp')).toBe('b')
+    expect(moveInWall(grid, 'c', 'ArrowDown')).toBe('f')
+    expect(moveInWall(grid, 'f', 'ArrowDown')).toBeNull()
+    expect(moveInWall(grid, 'h', 'ArrowUp')).toBeNull()
+  })
+
+  it('jumps to the ends, and ignores other keys', () => {
+    expect(moveInWall(grid, 'd', 'Home')).toBe('a')
+    expect(moveInWall(grid, 'd', 'End')).toBe('i')
+    expect(moveInWall(grid, 'd', 'Enter')).toBeNull()
+  })
+})
+
+describe('deep links', () => {
+  it('reads the parameters it knows and ignores the rest', () => {
+    expect(linkFromParams({ test: 'P22b' })).toEqual({ test: 'P22b' })
+    expect(linkFromParams({ audit: 'quarantined', quarantine: 'on' })).toEqual({
+      filters: { audit: 'quarantined' },
+      quarantine: true,
+    })
+    expect(linkFromParams({ audit: 'nonsense', sample: 'family:rod', flow: 'Opposed', pi: 'Olson' })).toEqual({
+      filters: { sample: 'family:rod', flow: 'Opposed', pi: 'Olson' },
+    })
+    expect(linkFromParams({ sample: 'family:unknown' })).toEqual({})
+  })
+
+  it('writes the same parameters back', () => {
+    const params = { audit: 'co-over-range', quarantine: 'on', test: 'M5' }
+    expect(paramsFromLink(linkFromParams(params))).toEqual(params)
+  })
+})
+
+describe('tileLabel', () => {
+  it('says in words what the tile shows', () => {
+    const p22b = rows.find((r) => r.testId === 'P22b')
+    expect(tileLabel(p22b!)).toBe(
+      'Test P22b, Fernandez-Pello, PMMA rod, 9.525 mm, initial O2 20%, opposed flow, quarantined, burn not checked: a reading is unusable',
+    )
+    const t1 = rows.find((r) => r.testId === 'T1')
+    expect(tileLabel(t1!)).toContain('flow not stated')
+    expect(tileLabel(t1!)).toContain('fire too small for the sensors')
+  })
+})

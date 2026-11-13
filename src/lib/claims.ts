@@ -100,6 +100,17 @@ export function splitEmphasis(
   }
 }
 
+/**
+ * The verified claims quoting NASA's Appendix A note for one test: "bass2.note.o12", and
+ * "bass2.note.m5-los" for M5 (the part after the test id names the note).
+ */
+export function testNoteClaimIds(testId: string): string[] {
+  const prefix = `bass2.note.${testId.toLowerCase()}`
+  return CLAIMS.filter((claim) => claim.verified && (claim.id === prefix || claim.id.startsWith(`${prefix}-`))).map(
+    (claim) => claim.id,
+  )
+}
+
 /** A link for a source: its URL, else its DOI. */
 export function sourceLink(source: Source): string | null {
   if (source.url) return source.url
