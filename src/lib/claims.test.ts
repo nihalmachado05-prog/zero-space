@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { IGNITION_LIMIT_O2_PCT, PULSE_HZ } from './burnTwin'
+import { IGNITION_LIMIT_O2_PCT, PULSE_HZ, QUENCH_ASPECT_RATIO } from './burnTwin'
 import {
   CO2_PER_O2,
   CO_PPM_PER_PCT_CO2,
@@ -24,11 +24,20 @@ const claim = (id: string) => {
 const quoteOf = (id: string) => normalize(claim(id).quote ?? '')
 
 describe('claims.json', () => {
-  it('holds the 80 report claims and the 36 PSI claims, each id once', () => {
-    expect(CLAIMS).toHaveLength(116)
-    expect(new Set(CLAIMS.map((c) => c.id)).size).toBe(116)
-    expect(CLAIMS.filter((c) => typeof c.locator?.pdfPage === 'number')).toHaveLength(80)
+  it('holds the 81 report claims, the 36 PSI claims and the 3 computed claims, each id once', () => {
+    expect(CLAIMS).toHaveLength(120)
+    expect(new Set(CLAIMS.map((c) => c.id)).size).toBe(120)
+    expect(CLAIMS.filter((c) => typeof c.locator?.pdfPage === 'number')).toHaveLength(81)
     expect(CLAIMS.filter((c) => typeof c.locator?.file === 'string')).toHaveLength(36)
+    expect(CLAIMS.filter((c) => c.kind === 'computed')).toHaveLength(3)
+  })
+
+  it('gives every computed claim a formula and inputs that are verified claims', () => {
+    for (const c of CLAIMS.filter((c) => c.kind === 'computed')) {
+      expect(c.formula, c.id).toBeTruthy()
+      expect(c.inputs?.length, c.id).toBeGreaterThan(0)
+      for (const input of c.inputs ?? []) expect(getClaim(input)?.verified, `${c.id} → ${input}`).toBe(true)
+    }
   })
 
   it('gives every quoted claim a quote, a locator and a source in sources.json', () => {
@@ -127,6 +136,8 @@ describe('model constants match their quotes', () => {
     expect(quoteOf('bass2.ign.limit-14.5')).toContain(`~${IGNITION_LIMIT_O2_PCT} percent O2`)
     expect(claim('bass2.osc-1.1hz').value).toBe(PULSE_HZ)
     expect(quoteOf('bass2.osc-1.1hz')).toContain(`${PULSE_HZ} Hz`)
+    expect(claim('bass2.aspect-0.5').value).toBe(QUENCH_ASPECT_RATIO)
+    expect(quoteOf('bass2.aspect-0.5')).toContain(`to ${QUENCH_ASPECT_RATIO} at extinction`)
   })
 
   it('cabin.ts', () => {

@@ -91,7 +91,7 @@ export function TwinGauge({ layout }: { layout: StageLayout }) {
         >
           <p className="text-muted">1g limit, PMMA rods, 4 cm/s forced flow</p>
           <p className="text-ink">
-            Earth limit <span className="num">{EARTH_LIMIT_O2_PCT.toFixed(1)}%</span>
+            Earth limit <span className="num">{EARTH_LIMIT_O2_PCT.toFixed(1)}%</span>{' '}
             <Cite id="bass2.flam.vs-1g" />
           </p>
         </div>
@@ -103,9 +103,8 @@ export function TwinGauge({ layout }: { layout: StageLayout }) {
         <div className="absolute top-0 w-64 -translate-y-2 text-xs leading-4" style={{ left: LABEL_GAP }}>
           <p className="text-ink">
             Orbit limit <span ref={orbitLimitRef} className="num" />, model
-            {/* A space between neighbouring footnotes, so one's hit area never covers the next. */}
-            <Cite id="bass2.flam.eq61-branches" /> <Cite id="bass2.flam.stretch-def" />{' '}
-            <Cite id="bass2.flam.r0" />
+            {/* One footnote for the whole calculation; its drawer lists every source. */}
+            <Cite id="twin.orbit-limit" />
           </p>
           <p className="text-muted">Eq. 6.1 for this rod and airflow</p>
         </div>
@@ -158,7 +157,7 @@ function TwinResult({ layout }: { layout: StageLayout }) {
         </p>
         <p>
           of oxygen {longer ? 'longer' : 'sooner'}
-          <Cite id="bass2.flam.vs-1g" /> <Cite id="bass2.flam.eq61-branches" />
+          <Cite id="twin.gap" />
         </p>
       </div>
     </>

@@ -890,6 +890,22 @@
     "verified": true
   },
   {
+    "id": "bass2.aspect-0.5",
+    "topic": "flammability",
+    "text": "The flame's length-to-width ratio fell to 0.5 at extinction: a hemispherical flame at the quenching limit",
+    "value": 0.5,
+    "kind": "quoted",
+    "sourceId": "nasa-tm-20210011385",
+    "quote": "The aspect ratio (L/W) decreases incrementally to 0.5 at extinction, indicating a hemispherical flame at the quenching limit.",
+    "emphasis": "decreases incrementally to 0.5 at extinction",
+    "locator": {
+      "pdfPage": 78,
+      "reportPage": 70,
+      "spansNextPage": false
+    },
+    "verified": true
+  },
+  {
     "id": "bass2.lab-partner",
     "topic": "story",
     "text": "The report calls the ISS astronauts its lab partners",

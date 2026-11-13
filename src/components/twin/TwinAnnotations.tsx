@@ -1,6 +1,7 @@
 import { useRef, type ReactNode } from 'react'
 import { useTwin } from '../../lib/burnStore'
-import { IGNITION_LIMIT_O2_PCT, type FlameState } from '../../lib/burnTwin'
+import { BUBBLES_REACH_RADII } from '../../draw/rod'
+import { IGNITION_LIMIT_O2_PCT, orbitModel, type FlameState } from '../../lib/burnTwin'
 import { EARTH_LIMIT_O2_PCT } from '../../lib/physics'
 import type { StageLayout } from '../../lib/twinLayout'
 import { Cite } from '../Cite'
@@ -14,6 +15,7 @@ import { setText, useTwinFrame } from './twinFrame'
 export function TwinAnnotations({ layout }: { layout: StageLayout }) {
   const earth = useTwin((state) => state.earth)
   const orbit = useTwin((state) => state.orbit)
+  const branch = useTwin((state) => orbitModel(state.o2Pct, state.flowCmS, state.rodMm).branch)
   const boxRef = useRef<HTMLDivElement>(null)
   const stretchRef = useRef<HTMLSpanElement>(null)
   const earthMarginRef = useRef<HTMLSpanElement>(null)
@@ -39,7 +41,7 @@ export function TwinAnnotations({ layout }: { layout: StageLayout }) {
     }
   })
 
-  const { earthTip, rodRadius, unit } = layout
+  const { earthTip, orbitTip, rodRadius, unit } = layout
   return (
     <>
       {/* Earth: the margin sits beside the rod, just under the flame, on the side away from the gauge. */}
@@ -58,6 +60,20 @@ export function TwinAnnotations({ layout }: { layout: StageLayout }) {
         <EarthStamp flame={earth} />
       </div>
 
+      {/* The bubbles drawn in the hot end of the orbit rod: hovering them shows their source. */}
+      <Cite
+        id="bass2.vapor-jet"
+        area={{
+          className: 'absolute rounded-sm',
+          style: {
+            left: orbitTip.x + rodRadius * 0.5,
+            top: orbitTip.y - rodRadius,
+            width: rodRadius * (BUBBLES_REACH_RADII - 0.5),
+            height: rodRadius * 2,
+          },
+        }}
+      />
+
       {/* Orbit: a corner-bracket box that tracks the flame drawn on the canvas. */}
       <div ref={boxRef} className="absolute top-0 left-0">
         <div
@@ -70,14 +86,28 @@ export function TwinAnnotations({ layout }: { layout: StageLayout }) {
           <span className="absolute right-0 bottom-0 size-2.5 border-r border-b border-ink/60" />
         </div>
         <p className="absolute bottom-full left-0 mb-1.5 text-xs leading-4 whitespace-nowrap text-ink/70">
-          Stretch rate <i>a</i> <span ref={stretchRef} className="num" /> s⁻¹
-          <Cite id="bass2.flam.stretch-def" />
+          Stretch rate <i>a</i> = <span ref={stretchRef} className="num" /> s⁻¹{' '}
+          <Cite id="twin.stretch-rate" />
         </p>
-        <p className="absolute top-full left-1/2 mt-2 -translate-x-1/2 text-xs leading-4 whitespace-nowrap text-ink/70">
-          <span ref={orbitMarginRef} className="num" /> points <span ref={orbitSideRef} /> its limit
-          <Cite id="bass2.flam.eq61-branches" />
-          <span className="ml-2 text-muted">Model</span>
-        </p>
+        <div className="absolute top-full left-1/2 mt-2 -translate-x-1/2 text-center text-xs leading-4 whitespace-nowrap text-ink/70">
+          <p>
+            <span ref={orbitMarginRef} className="num" /> points <span ref={orbitSideRef} /> its limit
+            <Cite id="twin.orbit-limit" />
+            <span className="ml-2 text-muted">Model</span>
+          </p>
+          {/* What the drawn shape is based on: the report's own words for each kind of limit. */}
+          {branch === 'quenching' ? (
+            <p className="text-muted">
+              Nears a hemisphere at the quenching limit
+              <Cite id="bass2.aspect-0.5" />
+            </p>
+          ) : (
+            <p className="text-muted">
+              Shape drawn after NASA’s photos of limit flames
+              <Cite id="bass2.fig63" />
+            </p>
+          )}
+        </div>
         <div
           aria-live="polite"
           className="absolute top-1/2 right-full mr-5 w-52 -translate-y-1/2 text-right text-sm leading-5"
@@ -100,7 +130,7 @@ function EarthStamp({ flame }: { flame: FlameState }) {
   if (flame.refusal !== null) {
     return (
       <Stamp key="refusal" origin="left">
-        Won’t stay lit below <span className="num">{EARTH_LIMIT_O2_PCT.toFixed(1)}%</span>
+        Won’t stay lit below <span className="num">{EARTH_LIMIT_O2_PCT.toFixed(1)}%</span>{' '}
         <Cite id="bass2.flam.vs-1g" />
       </Stamp>
     )
@@ -108,7 +138,7 @@ function EarthStamp({ flame }: { flame: FlameState }) {
   if (flame.lit || flame.outAtPct === null) return null
   return (
     <Stamp key="out" origin="left">
-      Out at <span className="num">{flame.outAtPct.toFixed(1)}%</span>
+      Out at <span className="num">{flame.outAtPct.toFixed(1)}%</span>{' '}
       <Cite id="bass2.flam.vs-1g" />
     </Stamp>
   )
@@ -118,7 +148,7 @@ function OrbitStamp({ flame }: { flame: FlameState }) {
   if (flame.refusal === 'below-ignition') {
     return (
       <Stamp key="ignition" origin="right">
-        Won’t ignite below <span className="num">~{IGNITION_LIMIT_O2_PCT}%</span> (BASS-II rods)
+        Won’t ignite below <span className="num">~{IGNITION_LIMIT_O2_PCT}%</span> (BASS-II rods){' '}
         <Cite id="bass2.ign.limit-14.5" />
         <span className="block text-xs leading-4 text-ink/70">
           A flame lit higher can keep burning lower
@@ -130,16 +160,15 @@ function OrbitStamp({ flame }: { flame: FlameState }) {
   if (flame.refusal === 'below-limit') {
     return (
       <Stamp key="limit" origin="right">
-        Below the Eq. 6.1 limit at this airflow (model)
-        <Cite id="bass2.flam.eq61-branches" />
+        Below the Eq. 6.1 limit at this airflow (model) <Cite id="twin.orbit-limit" />
       </Stamp>
     )
   }
   if (flame.lit || flame.outAtPct === null) return null
   return (
     <Stamp key="out" origin="right">
-      Out at <span className="num">{flame.outAtPct.toFixed(2)}%</span> (model)
-      <Cite id="bass2.flam.eq61-branches" />
+      Out at <span className="num">{flame.outAtPct.toFixed(2)}%</span> (model){' '}
+      <Cite id="twin.orbit-limit" />
     </Stamp>
   )
 }

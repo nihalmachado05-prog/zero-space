@@ -890,6 +890,22 @@
     "verified": true
   },
   {
+    "id": "bass2.aspect-0.5",
+    "topic": "flammability",
+    "text": "The flame's length-to-width ratio fell to 0.5 at extinction: a hemispherical flame at the quenching limit",
+    "value": 0.5,
+    "kind": "quoted",
+    "sourceId": "nasa-tm-20210011385",
+    "quote": "The aspect ratio (L/W) decreases incrementally to 0.5 at extinction, indicating a hemispherical flame at the quenching limit.",
+    "emphasis": "decreases incrementally to 0.5 at extinction",
+    "locator": {
+      "pdfPage": 78,
+      "reportPage": 70,
+      "spansNextPage": false
+    },
+    "verified": true
+  },
+  {
     "id": "bass2.lab-partner",
     "topic": "story",
     "text": "The report calls the ISS astronauts its lab partners",
@@ -1640,6 +1656,36 @@
       "file": "i_Investigation.txt",
       "line": 40
     },
+    "verified": true
+  },
+  {
+    "id": "twin.stretch-rate",
+    "topic": "equations",
+    "text": "Stretch rate a at the current airflow and rod size",
+    "unit": "1/s",
+    "kind": "computed",
+    "formula": "a = (3/2)(U/r)(r/r0)^1/2",
+    "inputs": ["bass2.flam.stretch-def", "bass2.flam.r0"],
+    "verified": true
+  },
+  {
+    "id": "twin.orbit-limit",
+    "topic": "equations",
+    "text": "Orbit limit: Eq. 6.1 at the stretch rate for the current airflow and rod size",
+    "unit": "% O2",
+    "kind": "computed",
+    "formula": "X_O2 = 6 exp(-0.5a) + 0.0167a + 13.4, with a = (3/2)(U/r)(r/r0)^1/2",
+    "inputs": ["bass2.flam.eq61-branches", "bass2.flam.stretch-def", "bass2.flam.r0"],
+    "verified": true
+  },
+  {
+    "id": "twin.gap",
+    "topic": "flammability",
+    "text": "How many points of O2 lower the orbit flame kept burning than the Earth flame",
+    "unit": "points of O2",
+    "kind": "computed",
+    "formula": "O2 where the Earth flame went out - O2 where the orbit flame went out",
+    "inputs": ["bass2.flam.vs-1g", "twin.orbit-limit"],
     "verified": true
   }
 ]

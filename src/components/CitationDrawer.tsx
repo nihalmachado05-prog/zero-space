@@ -130,12 +130,17 @@ function ClaimDetails({ claim, sweepDelayMs }: { claim: Claim; sweepDelayMs: num
           <p className="text-muted">Formula</p>
           <p className="num">{claim.formula ?? 'Not stated'}</p>
           {claim.inputs && claim.inputs.length > 0 && (
-            <p className="flex flex-wrap items-center gap-2">
-              <span className="text-muted">Inputs</span>
-              {claim.inputs.map((input) => (
-                <Cite key={input} id={input} showUnverified />
-              ))}
-            </p>
+            <>
+              <p className="text-muted">Sources</p>
+              {/* Each source in words, with its own footnote: a click goes on to its quote. */}
+              <ul className="flex flex-col gap-2">
+                {claim.inputs.map((input) => (
+                  <li key={input} className="leading-5">
+                    {getClaim(input)?.text ?? input} <Cite id={input} showUnverified />
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
           {!claim.quote && status}
         </div>

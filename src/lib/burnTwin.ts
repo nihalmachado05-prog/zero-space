@@ -18,6 +18,12 @@ export const IGNITION_LIMIT_O2_PCT = 14.5
 /** Frequency of the oscillation seen just before quenching, Hz. Quoted: bass2.osc-1.1hz (p. 89). */
 export const PULSE_HZ = 1.1
 
+/**
+ * Flame length ÷ width at quenching extinction: 0.5 is a hemisphere. Quoted: bass2.aspect-0.5 (p. 70).
+ * The orbit flame's drawn shape closes in on this as its margin runs out.
+ */
+export const QUENCH_ASPECT_RATIO = 0.5
+
 /** The pulse shows only within this many points of O2 above the limit (SPEC F1). */
 export const PULSE_MARGIN_PTS = 0.15
 

@@ -9,7 +9,7 @@ Written Mon 9 Nov 2026. Event: Sat 14 to Sun 15 Nov 2026. Read `CLAUDE.md` first
 **What changed from v1:** the app is now built around the team's modules: the audit bar, the Earth vs Orbit Burn Twin, SUMMARIZE, RANK, INTERPRET (the cabin fire, toxicity and suppression simulator) and the Lab Partner AI. Every module has a signature "wow" moment, and every alarm and number in it is earned from NASA data.
 
 **Verified by script against the files:**
-- 80 verbatim quotes from the BASS-II Summary Report (NASA/TM-20210011385), each pinned to its report page and PDF page, in `docs/claims.seed.json`.
+- 81 verbatim quotes from the BASS-II Summary Report (NASA/TM-20210011385), each pinned to its report page and PDF page, in `docs/claims.seed.json`.
 - 36 verbatim quotes from the PSI metadata files for BASS (PSI-26), PSI-62, FLEX (PSI-69), Saffire-I (PSI-98, plus its CSV), Saffire-II (PSI-99), Saffire-III (PSI-100) and SAME (PSI-102), each pinned to its file and line, in `docs/claims.psi-seed.json`.
 - A full audit of the raw PSI-25 CSV, in `docs/fixtures/`. These files are the expected values for tests:
   - `audit-expected.json`: every flag, its rule, its count and its test ids
@@ -232,7 +232,7 @@ The old spec's headline counts (129, 122, 5, 2 and 4) are confirmed. Everything 
 - **The oxygen line:** the current O2 is a thin, faintly glowing horizontal line across the full stage width, at its height on the gauge, with its value riding on it at the left edge.
 - Under the stage, a slim strip on the page background:
   - the controls: O2 slider (12.0–23.0%), orbit airflow U (0.2–40 cm/s, log), rod size (6.35, 9.525 or 12.7 mm) as a three-option segmented control, and the buttons "Ignite", "Drain oxygen" and "Reset"
-  - at its right end, the Eq. 6.1 inset (Recharts) as a small black panel: the curve for the selected rod (O2 vs flow, log x-axis), the 15.4% and 13.4% lines (`bass2.flam.vs-1g`, `bass2.flam.derate`), and a dot that moves with O2 and U
+  - at its right end, the Eq. 6.1 inset (Recharts) as a black panel: the curve for the selected rod (O2 vs flow, log x-axis), the 15.4% and 13.4% lines (`bass2.flam.vs-1g`, `bass2.flam.derate`), and a dot that moves with O2 and U. Each line is labeled where it is drawn; there is no legend, only the axis titles "Airflow, cm/s" and "Oxygen, %"
 - At 1440×900 the stage, the controls and the inset are all visible without scrolling.
 
 **Rendering:**
@@ -252,18 +252,21 @@ The old spec's headline counts (129, 122, 5, 2 and 4) are confirmed. Everything 
 **Orbit half (illustration):**
 - Airflow comes from the left and meets the rod's tip head-on (axial stagnation flow, the setup Eq. 6.1 was fitted for). The rod runs toward the flow from the right.
 - The airflow is thin cyan-white streaks, at most about 300, moving left to right at a speed proportional to U and parting around the rod tip. They stay inside the right half.
-- The flame is a dome over the tip, drawn to match NASA's photos of near-limit flames (Fig. 6.3, `bass2.fig63`): a thin bright shell with a translucent fill, open downstream.
+- The flame is drawn after NASA's photos of limit flames (Fig. 6.3, `bass2.fig63`):
+  - **Near quenching, (a) to (c):** a translucent blue cup wrapped around the rod tip and open downstream. It is brightest along its outer rim and fades to a soft translucent blue inside, with a thin dark gap between flame and rod. No white-hot core and no thin crescent rim (`bass2.blue-hemispherical`).
+  - **At the quenching limit it is a hemisphere.** The report says the flame's length-to-width ratio "decreases incrementally to 0.5 at extinction, indicating a hemispherical flame at the quenching limit" (`bass2.aspect-0.5`). On the quenching branch the drawn cup shortens toward exactly 0.5 as the margin runs out, so the drain animates it.
+  - **In fast airflow close to blowoff, (d) to (f):** the tip opens up and warm orange-yellow light trails downstream beside the rod, with blue only at the edges.
 - Higher U flattens it against the tip.
-- Its size scales with the margin above the Eq. 6.1 limit for the current U and rod.
-- Its color moves from yellow-white toward a translucent all-blue as the margin shrinks (`bass2.blue-hemispherical`).
+- Its size and brightness scale with the margin above the Eq. 6.1 limit for the current U and rod.
 - It is steady, with no flicker.
 - **1.1 Hz pulse** (`bass2.osc-1.1hz`): only on the quenching branch (a < 10.38) and only when the margin is under 0.15 points.
 - It goes out at the Eq. 6.1 limit: it fades over 600 ms into a faint spherical halo that doesn't rise, because there's no buoyancy.
-- Each rod is lit by its flame: a warm highlight near the tip that fades with the flame.
+- Both rods are clear PMMA, as in the photos: a translucent cylinder with soft highlights, the flame visible through it, a few small bubbles in the hot end, and only a faint reflection of the flame near the tip. Hovering the orbit rod's bubbles shows their source (`bass2.vapor-jet`).
 
 **Annotations** (the model readout; every value comes from `physics.ts`; numbers in mono, words in Archivo, 12px, ink at 70%):
-- A thin corner-bracket box tracks the orbit flame, labeled with the live stretch rate, e.g. "a 9.44 s⁻¹".
-- Under each flame, its live O2 margin to its limit, with a small "Model" tag on the orbit side.
+- A thin corner-bracket box tracks the orbit flame, labeled with the live stretch rate, e.g. "Stretch rate a = 9.44 s⁻¹".
+- Under each flame, its live O2 margin to its limit, with a small "Model" tag on the orbit side. Under the orbit margin, one line on what the drawn shape is based on: "Nears a hemisphere at the quenching limit" (`bass2.aspect-0.5`) on the quenching branch, "Shape drawn after NASA's photos of limit flames" (`bass2.fig63`) on the blowoff branch.
+- A footnote marker never touches a unit or an exponent: a space comes first. Each label has one marker. A label that needs several sources cites a computed claim (`twin.stretch-rate`, `twin.orbit-limit`, `twin.gap`), whose drawer lists them all.
 - O2 is on the oxygen line and its slider, U is on its slider, and each limit is on the gauge.
 - No fake sensor channels and no hardware part numbers.
 
@@ -581,7 +584,7 @@ Each module belongs to one view: `set_burn_twin` to Overview, `filter_tests` to 
 - the verbatim quote in Source Serif 4 at 18px, with a 2px cyan rule on the left and no fill; if the claim has an `emphasis`, only that phrase gets a thin underline
 - directly under the quote, the status line with its icon: emerald "Quote checked" or red "Not verified"
 - the source title, report page and PDF page (or file and line) as a compact two-column list, and "Open the source"
-- for computed values, the formula with each input as its own Cite
+- for computed values, the formula, then every source in words, each with its own Cite
 - for data rows, the raw CSV cells
 
 Unverified claims never appear outside the drawer.
@@ -797,6 +800,7 @@ All constants are quoted in `docs/claims.seed.json`. Report pages are given as "
 - **Eq. 6.1:** X_O2 = 6·exp(−0.5a) + 0.0167a + 13.4, in % O2 (p. 75).
   - Quenching branch: 6·exp(−0.5a) + 13.4. Blowoff branch: 0.0167a + 13.4 (`bass2.flam.eq61-branches`).
   - Blowoff branch at a = 0: 13.4%, the report's conservative space limit (`bass2.flam.derate`).
+- **Flame shape at quenching:** length ÷ width falls to 0.5 at extinction, a hemisphere (`bass2.aspect-0.5`, p. 70). Only the Burn Twin's drawing uses it.
 - **Solid response time:** t_s = 0.7r²/α_s, with α_s = 1.2×10⁻³ cm²/s (p. 65, p. 68). τ = delay ÷ t_s.
 
 | Quantity | Input | Expected (±0.01 unless noted) |
@@ -849,7 +853,7 @@ Tests must hit these within 0.5%. Run the dilution rows with the fire off. Run t
 
 ### 8.3 Verified claims
 
-`docs/claims.seed.json` holds 80 claims from the report, all verified against the PDF and each pinned to a report page and PDF page. `docs/claims.psi-seed.json` holds 36 claims from the PSI metadata files, each pinned to a file and line. In M1, merge both into `src/data/claims.json`.
+`docs/claims.seed.json` holds 81 claims from the report, all verified against the PDF and each pinned to a report page and PDF page (80 from M1, plus `bass2.aspect-0.5` added in M2.1). `docs/claims.psi-seed.json` holds 36 claims from the PSI metadata files, each pinned to a file and line. In M1, merge both into `src/data/claims.json`. `src/data/claims.json` also holds 3 computed claims for the Burn Twin (`twin.stretch-rate`, `twin.orbit-limit`, `twin.gap`): each has a formula and lists the quoted claims it is calculated from.
 
 Sensor resolutions used by the audit rules: O2 ±0.1% (`bass2.sensor.o2-res`), CO2 0.1% (`bass2.sensor.co2-res`), CO 1 ppm (`bass2.co.sensor-range`).
 

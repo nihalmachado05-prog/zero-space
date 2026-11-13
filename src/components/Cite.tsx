@@ -3,6 +3,7 @@ import {
   useId,
   useRef,
   useState,
+  type CSSProperties,
   type FocusEvent,
   type KeyboardEvent,
   type PointerEvent,
@@ -17,6 +18,13 @@ type CiteProps = {
   id: string
   /** Only the citation drawer sets this, to link inputs that may not be verified. */
   showUnverified?: boolean
+  /**
+   * Makes the footnote an area laid over part of a drawing (the bubbles in a rod), instead of
+   * a number in a line of text. Hovering or focusing anywhere in the area shows the preview and
+   * a click opens the drawer; its number sits at the area's top right corner.
+   * Give it the classes or style that place and size it.
+   */
+  area?: { className?: string; style?: CSSProperties }
 }
 
 /** Hovering waits this long before the first preview, so a passing pointer doesn't flash one. */
@@ -33,7 +41,7 @@ let lastClosedAt = -Infinity
  * source; a click opens the citation drawer.
  * Unverified or unknown claims render nothing outside the drawer (CLAUDE.md rule 3).
  */
-export function Cite({ id, showUnverified = false }: CiteProps) {
+export function Cite({ id, showUnverified = false, area }: CiteProps) {
   const { openCitation } = useCitation()
   const claim = getClaim(id)
   const shown = claim !== undefined && (claim.verified || showUnverified)
@@ -79,9 +87,14 @@ export function Cite({ id, showUnverified = false }: CiteProps) {
         aria-haspopup="dialog"
         aria-describedby={preview.open ? previewId : undefined}
         aria-label={`Footnote ${number ?? ''}, show source: ${claim.text}`}
-        className="relative -top-[0.6em] cursor-pointer px-[0.1em] align-baseline font-sans text-[0.75em] leading-none font-semibold text-cyan after:absolute after:-inset-x-1 after:-inset-y-1.5 after:content-[''] focus-visible:outline-offset-1"
+        style={area?.style}
+        className={
+          area
+            ? `cursor-pointer font-sans text-[0.5625rem] leading-none font-semibold text-cyan ${area.className ?? ''}`
+            : "relative -top-[0.6em] cursor-pointer px-[0.1em] align-baseline font-sans text-[0.75em] leading-none font-semibold text-cyan after:absolute after:-inset-x-1 after:-inset-y-1.5 after:content-[''] focus-visible:outline-offset-1"
+        }
       >
-        {number}
+        {area ? <span className="absolute -top-2.5 right-0">{number}</span> : number}
       </button>
       {preview.open && (
         <FootnotePreview

@@ -223,7 +223,7 @@ export class TwinScene {
       angle: Math.PI / 2,
       radius: rodRadius,
       length: this.height - tip.y + 48,
-      light: { rgb: '255,176,96', intensity: this.earthLight, reach: flame.height * 0.95 },
+      light: { rgb: '255,190,120', intensity: this.earthLight, reach: flame.height * 0.6 },
     })
   }
 
@@ -264,11 +264,13 @@ export class TwinScene {
     drawStagnationFlame(ctx, {
       x: tip.x,
       y: tip.y,
+      rodRadius,
       shape,
-      intensity: this.orbitLight * dim * (0.72 + 0.28 * shape.vigor),
+      intensity: this.orbitLight * dim * (0.82 + 0.18 * shape.vigor),
     })
-    const warm = shape.heat
-    const rgb = [lerp(110, 255, warm), lerp(172, 196, warm), lerp(255, 128, warm)].map(Math.round).join(',')
+    // The rod reflects its flame: blue, a little warmer when warm light trails in fast flow.
+    const warm = shape.warm * 0.6
+    const rgb = [lerp(120, 255, warm), lerp(184, 200, warm), lerp(255, 150, warm)].map(Math.round).join(',')
     drawRod(ctx, {
       x: tip.x,
       y: tip.y,
@@ -278,7 +280,7 @@ export class TwinScene {
       light: {
         rgb,
         intensity: this.orbitLight * dim * (0.55 + 0.45 * shape.vigor),
-        reach: shape.tail * 1.3 + unit * 2,
+        reach: shape.tail + unit * 2,
       },
     })
   }
