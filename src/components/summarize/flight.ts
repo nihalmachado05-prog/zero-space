@@ -24,5 +24,12 @@ export function landedAt(order: number): number {
   return FLY_IN_S + order * STAGGER_S
 }
 
+/**
+ * Arriving at SUMMARIZE with quarantine already on (from the audit bar's link, or a deep link),
+ * the tiles first show in the wall and then fly to the bay, this long after the view mounts: just
+ * past the 150 ms view crossfade, so the flight is seen. Not used under reduced motion.
+ */
+export const ENTRY_FLIGHT_DELAY_MS = 250
+
 /** A tile that never flies (not quarantined) still needs a transition object. */
 export const STILL: Transition = { layout: { duration: 0 } }

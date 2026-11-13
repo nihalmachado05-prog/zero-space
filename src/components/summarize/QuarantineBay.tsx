@@ -14,7 +14,10 @@ type QuarantineBayProps = {
   groups: BayGroup[]
   /** Each test's place in the flight, for the stagger. */
   order: ReadonlyMap<string, number>
+  /** What the bay shows: tiles in it, or empty slots. */
   quarantine: boolean
+  /** The switch's state. It can lead `quarantine` by a moment while the tiles wait to fly in. */
+  switchOn: boolean
   onQuarantine: (on: boolean) => void
   matched: ReadonlySet<string>
   domain: { min: number; max: number }
@@ -41,7 +44,7 @@ function ReasonChip({ row }: { row: Bass2Row }) {
   )
 }
 
-type BaySlotProps = Omit<QuarantineBayProps, 'groups' | 'order' | 'onQuarantine'> & {
+type BaySlotProps = Omit<QuarantineBayProps, 'groups' | 'order' | 'switchOn' | 'onQuarantine'> & {
   row: Bass2Row
   flightOrder: number
   mathRegion: string
@@ -109,7 +112,7 @@ function BaySlot({ row, flightOrder, mathRegion, reduceMotion, quarantine, match
  * its reason chip; impossible values get "Show the math". Turned off, they fly back and the slots
  * wait empty.
  */
-export function QuarantineBay({ groups, order, onQuarantine, ...slot }: QuarantineBayProps) {
+export function QuarantineBay({ groups, order, switchOn, onQuarantine, ...slot }: QuarantineBayProps) {
   const reduceMotion = useReducedMotion() ?? false
   const headingId = useId()
   const mathIdPrefix = useId()
@@ -121,7 +124,7 @@ export function QuarantineBay({ groups, order, onQuarantine, ...slot }: Quaranti
         <h2 id={headingId} className="text-sm leading-5 font-semibold">
           Quarantine bay
         </h2>
-        <Switch label="Quarantine" checked={slot.quarantine} onChange={onQuarantine} />
+        <Switch label="Quarantine" checked={switchOn} onChange={onQuarantine} />
       </div>
       <p className="max-w-md text-xs leading-5 text-muted">
         Spreadsheet anomalies we flagged: <span className="text-ink tabular-nums">{count}</span> tests whose final O2

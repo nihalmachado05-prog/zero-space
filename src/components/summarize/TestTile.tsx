@@ -3,6 +3,11 @@ import type { Ref } from 'react'
 import { severityOf, type Bass2Row } from '../../lib/audit'
 import { FlowGlyph, StatusGlyph } from './glyphs'
 
+/** A tile the filters don't match stays in place, dimmed to this. */
+const DIMMED_OPACITY = 0.18
+/** Filter changes fade the dimming in 200 ms (an interaction, CLAUDE.md interaction 1). */
+const DIM_FADE = { duration: 0.2, ease: 'easeOut' } as const
+
 /** The faint red glow of a quarantined tile. A shadow, so it never takes a click. */
 const QUARANTINE_GLOW = '0 0 10px 1px rgb(239 68 68 / 0.45), 0 0 0 1px rgb(239 68 68 / 0.35)'
 
@@ -51,7 +56,11 @@ export function TestTile({
       type="button"
       layoutId={`tile-${row.testId}`}
       layoutDependency={layoutKey}
-      transition={flight}
+      // Motion owns the opacity: a shared-layout flight writes it inline, so a CSS class for the
+      // filter dimming would be overridden after the first flight.
+      initial={false}
+      animate={{ opacity: dimmed ? DIMMED_OPACITY : 1 }}
+      transition={{ ...flight, opacity: DIM_FADE }}
       tabIndex={tabIndex}
       aria-label={label}
       data-test-id={row.testId}
@@ -60,9 +69,9 @@ export function TestTile({
       onPointerEnter={onPointerEnter}
       onKeyDown={onKeyDown}
       style={{ backgroundColor: fill, boxShadow: severity === 'quarantined' ? QUARANTINE_GLOW : 'none' }}
-      className={`test-id relative grid size-9 shrink-0 @min-[1300px]/stage:size-10 cursor-pointer place-items-center text-xs leading-none text-ink transition-opacity duration-200 after:pointer-events-none after:absolute after:inset-0 after:border after:border-transparent hover:after:border-ink/70 ${
-        dimmed ? 'opacity-[0.18]' : 'opacity-100'
-      } ${severity === 'quarantined' ? 'z-10' : ''}`}
+      className={`test-id relative grid size-9 shrink-0 @min-[1300px]/stage:size-10 cursor-pointer place-items-center text-xs leading-none text-ink after:pointer-events-none after:absolute after:inset-0 after:border after:border-transparent hover:after:border-ink/70 ${
+        severity === 'quarantined' ? 'z-10' : ''
+      }`}
     >
       {row.testId}
       <StatusGlyph severity={severity} className="absolute top-1 right-1" />

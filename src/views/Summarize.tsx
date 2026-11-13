@@ -1,10 +1,10 @@
 import { LayoutGroup, useReducedMotion } from 'motion/react'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Note } from '../components/Note'
 import { CheckedAgainstNasa } from '../components/summarize/CheckedAgainstNasa'
 import { DistributionStrip } from '../components/summarize/DistributionStrip'
 import { FilterStrip } from '../components/summarize/FilterStrip'
-import { landedAt } from '../components/summarize/flight'
+import { ENTRY_FLIGHT_DELAY_MS, landedAt } from '../components/summarize/flight'
 import { QuarantineBay } from '../components/summarize/QuarantineBay'
 import { RecordDrawer } from '../components/summarize/RecordDrawer'
 import { SummaryHeader } from '../components/summarize/SummaryHeader'
@@ -47,7 +47,17 @@ export function Summarize({ params }: ViewProps) {
 function Explorer({ bass2, audit, params }: { bass2: Bass2File; audit: AuditFile; params: ViewProps['params'] }) {
   const rows = bass2.rows
   const filters = useSummarize((state) => state.filters)
-  const quarantine = useSummarize((state) => state.quarantine)
+  const quarantineOn = useSummarize((state) => state.quarantine)
+  const reduceMotion = useReducedMotion() ?? false
+  // The quarantine the wall and bay show. Arriving with quarantine already on, the tiles start in
+  // the wall and fly to the bay once the view is in (the F2 signature motion, and the video's
+  // "click Quarantined" beat). Under reduced motion they are in the bay at once.
+  const [entered, setEntered] = useState(false)
+  useEffect(() => {
+    const timer = window.setTimeout(() => setEntered(true), ENTRY_FLIGHT_DELAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [])
+  const quarantine = quarantineOn && (entered || reduceMotion)
   const recordId = useSummarize((state) => state.recordId)
   const mathId = useSummarize((state) => state.mathId)
 
@@ -95,7 +105,6 @@ function Explorer({ bass2, audit, params }: { bass2: Bass2File; audit: AuditFile
   // When quarantine turns on (or the view opens with it on), open the first forensic line once
   // the last tile has landed; at once under reduced motion. Not if a deep link already chose one,
   // and not again after someone hides it.
-  const reduceMotion = useReducedMotion() ?? false
   useEffect(() => {
     const first = wall.firstMathId
     if (!quarantine || first === null || summarizeStore.get().mathId !== null) return
@@ -167,6 +176,7 @@ function Explorer({ bass2, audit, params }: { bass2: Bass2File; audit: AuditFile
                     groups={wall.groups}
                     order={wall.bayOrder}
                     quarantine={quarantine}
+                    switchOn={quarantineOn}
                     onQuarantine={summarizeStore.setQuarantine}
                     matched={matched}
                     domain={wall.domain}
